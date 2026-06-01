@@ -1,0 +1,134 @@
+{
+  "name": "JobHunt - Add Preview Columns (one-off)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a1111111-0000-4000-8000-000000000001",
+      "name": "Run Once",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1qaMc57-B2-3TQ76dRBufU305DDsff0B8Oh0R__KfA4Q"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "applications",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "a1111111-0000-4000-8000-000000000002",
+      "name": "Read Applications Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.1,
+      "position": [
+        320,
+        300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HU20SC9nDcO7AUXR",
+          "name": "Google Sheets account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pick the first existing row's id so the appendOrUpdate below MATCHES an\n// existing row (no junk row appended) while still forcing n8n's autoMap to\n// add the three new header columns. If the sheet has only a header (no data),\n// emit nothing so we don't create a blank data row.\nconst rows = $items('Read Applications Sheet').map(i => i.json).filter(r => r && (r.id || r.id === 0));\nif (rows.length === 0) {\n  return [];\n}\nreturn [{ json: { id: rows[0].id, cl_preview: rows[0].cl_preview || '', resume_diff_preview: rows[0].resume_diff_preview || '', fit_summary: rows[0].fit_summary || '' } }];"
+      },
+      "id": "a1111111-0000-4000-8000-000000000003",
+      "name": "Pick First Row Id",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1qaMc57-B2-3TQ76dRBufU305DDsff0B8Oh0R__KfA4Q"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "applications",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "matchingColumns": [
+            "id"
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1111111-0000-4000-8000-000000000004",
+      "name": "Add Columns via AutoMap",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.1,
+      "position": [
+        760,
+        300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HU20SC9nDcO7AUXR",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Run Once": {
+      "main": [
+        [
+          {
+            "node": "Read Applications Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Applications Sheet": {
+      "main": [
+        [
+          {
+            "node": "Pick First Row Id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick First Row Id": {
+      "main": [
+        [
+          {
+            "node": "Add Columns via AutoMap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "id": "add_preview_columns"
+}

@@ -1,0 +1,431 @@
+{
+  "name": "JobHunt - Followup",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 10 * * *"
+            }
+          ]
+        }
+      },
+      "id": "e0bdeca4-1c5d-4f11-bde9-e6cb0f23cbcd",
+      "name": "Daily 10AM Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1qaMc57-B2-3TQ76dRBufU305DDsff0B8Oh0R__KfA4Q"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "applications",
+          "mode": "name"
+        },
+        "filters": {
+          "selfConfirm": true,
+          "values": [
+            {
+              "column": "response_at",
+              "condition": "isEmpty"
+            }
+          ]
+        }
+      },
+      "id": "a9fdc2fb-e67c-48be-850d-83b6b19da2ec",
+      "name": "Get Applied Roles",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.1,
+      "position": [
+        300,
+        300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HU20SC9nDcO7AUXR",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $items('Get Applied Roles');\nconst today = new Date().toISOString().split('T')[0];\nconst tasks = [];\n\nfor (const item of items) {\n  const row = item.json;\n  const status = row.status;\n  let stage = null;\n  \n  if (status === 'applied' && row.followup_1_due && row.followup_1_due <= today) {\n    stage = 'followup_1';\n  } else if (status === 'followup_1_sent' && row.followup_2_due && row.followup_2_due <= today) {\n    stage = 'followup_2';\n  }\n  \n  if (!stage) continue;\n  \n  // 1. Recruiter task\n  const recruiterStage = stage === 'followup_1' \n    ? (row.hiring_mgr_email ? 'email_1' : 'inmail_1')\n    : (row.hiring_mgr_email ? 'email_2' : 'inmail_2');\n    \n  tasks.push({\n    id: row.id,\n    company: row.company,\n    role: row.role,\n    jd_summary: row.jd_text ? row.jd_text.slice(0, 1000) : '',\n    applied_at: row.applied_at,\n    hiring_mgr: {\n      name: row.hiring_mgr_name || '',\n      title: row.hiring_mgr_title || '',\n      linkedin_url: row.hiring_mgr_linkedin || '',\n      email: row.hiring_mgr_email || ''\n    },\n    referral_candidate: null,\n    stage: recruiterStage,\n    type: 'recruiter',\n    target_linkedin: row.hiring_mgr_linkedin || '',\n    target_email: row.hiring_mgr_email || ''\n  });\n  \n  // 2. Referral task (only at followup_1 stage, if referrals exist)\n  if (stage === 'followup_1' && row.referrals) {\n    try {\n      const referralsList = JSON.parse(row.referrals);\n      if (Array.isArray(referralsList) && referralsList.length > 0) {\n        const ref = referralsList[0]; // Take top referral\n        tasks.push({\n          id: row.id,\n          company: row.company,\n          role: row.role,\n          jd_summary: row.jd_text ? row.jd_text.slice(0, 1000) : '',\n          applied_at: row.applied_at,\n          hiring_mgr: {\n            name: row.hiring_mgr_name || '',\n            title: row.hiring_mgr_title || '',\n            linkedin_url: row.hiring_mgr_linkedin || ''\n          },\n          referral_candidate: {\n            name: ref.name || '',\n            title: ref.title || '',\n            mutual_with_candidate: ref.mutual_with_candidate || '1st Degree',\n            linkedin_url: ref.linkedin_url || ''\n          },\n          stage: 'warm_intro',\n          type: 'referral',\n          target_linkedin: ref.linkedin_url || '',\n          target_email: ''\n        });\n      }\n    } catch (e) {\n      // Ignore JSON parse errors\n    }\n  }\n}\n\nreturn tasks.map(t => ({ json: t }));"
+      },
+      "id": "d0e1fe1c-d70a-40a2-b258-86d9a187b4ee",
+      "name": "Filter Due Followups",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Base64-encode each due task so the shell command never quotes message /\n// JD text. followup.py decodes --input-b64 and returns the task merged with\n// the drafted subject/body.\nconst task = $json;\nreturn { ...task, followup_b64: Buffer.from(JSON.stringify(task)).toString('base64') };"
+      },
+      "id": "ab1cde3d-0d67-4a0b-967a-28956e18f2d1",
+      "name": "Build Followup Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "command": "$JOBHUNT_ROOT/.venv/bin/python $JOBHUNT_ROOT/playwright_scripts/followup.py --input-b64 \"{{$json.followup_b64}}\""
+      },
+      "id": "cb1cde3d-0d67-4a0b-967a-28956e18f26a",
+      "name": "Draft Recruiter Msg",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        840,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// followup.py prints the task merged with subject/body/tone. Parse it, then\n// derive the sheet status transition from the stage.\nlet task;\ntry {\n  task = JSON.parse(($json.stdout || '').trim());\n} catch (e) {\n  task = { ...$json, body: '', subject: '' };\n}\nconst today = new Date().toISOString();\n\ntask.followup_draft = task.body || '';\ntask.followup_subject = task.subject || '';\ntask.sheet_update = {};\n\nif (task.type === 'recruiter' && task.stage) {\n  if (task.stage.startsWith('email_1') || task.stage.startsWith('inmail_1')) {\n    task.sheet_update.status = 'followup_1_sent';\n    task.sheet_update.followup_1_sent_at = today;\n    const f2_due = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);\n    task.sheet_update.followup_2_due = f2_due.toISOString().split('T')[0];\n  }\n  else if (task.stage.startsWith('email_2') || task.stage.startsWith('inmail_2')) {\n    task.sheet_update.status = 'followup_2_sent';\n    task.sheet_update.followup_2_sent_at = today;\n  }\n}\n\nreturn task;"
+      },
+      "id": "d0e1fe1c-d70a-40a2-b258-86d9a187b5ee",
+      "name": "Parse Followup Draft",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.target_email}}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "f0e1fe1c-d70a-40a2-b258-86d9a187b6ee",
+      "name": "Is Email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1180,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "to": "={{$json.target_email}}",
+        "subject": "={{$json.followup_subject || 'Follow up regarding Business Analyst application'}}",
+        "emailType": "text",
+        "body": "={{$json.followup_draft}}"
+      },
+      "id": "b1b11e8a-e87f-47cf-89bd-a006dbfcfd4d",
+      "name": "Send Gmail Followup",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1400,
+        200
+      ],
+      "credentials": {
+        "gmailOAuth2Api": {
+          "id": "23BthT7HDa8du2B6",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.target_linkedin}}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "f0e1fe1c-d70a-40a2-b258-86d9a187b7ee",
+      "name": "Is LinkedIn?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1400,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=$JOBHUNT_ROOT/.venv/bin/python $JOBHUNT_ROOT/playwright_scripts/linkedin_referrals.py --target-url \"{{$json.target_linkedin}}\" --message \"{{$json.followup_draft}}\" --type auto"
+      },
+      "id": "e5bdeca4-1c5d-4f11-bde9-e6cb0f23cbcd",
+      "name": "Send LinkedIn Followup",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1620,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.type}}",
+              "value2": "recruiter"
+            }
+          ]
+        }
+      },
+      "id": "f0e1fe1c-d70a-40a2-b258-86d9a187b8ee",
+      "name": "Is Recruiter?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1840,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1qaMc57-B2-3TQ76dRBufU305DDsff0B8Oh0R__KfA4Q"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "applications",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{$json.id}}",
+            "status": "={{$json.sheet_update?.status}}",
+            "followup_1_sent_at": "={{$json.sheet_update?.followup_1_sent_at}}",
+            "followup_2_due": "={{$json.sheet_update?.followup_2_due}}",
+            "followup_2_sent_at": "={{$json.sheet_update?.followup_2_sent_at}}"
+          },
+          "matchingColumns": [
+            "id"
+          ]
+        }
+      },
+      "id": "18cfd2fb-a5a4-4dfb-9db3-a006dbfcfd19",
+      "name": "Update Sent Timestamps",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.1,
+      "position": [
+        2060,
+        300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HU20SC9nDcO7AUXR",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1qaMc57-B2-3TQ76dRBufU305DDsff0B8Oh0R__KfA4Q"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "applications",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{$json.id}}",
+            "referral_asked": "={{ $json.referral_candidate ? $json.referral_candidate.name + ' (' + $json.referral_candidate.linkedin_url + ')' : '' }}"
+          },
+          "matchingColumns": [
+            "id"
+          ]
+        }
+      },
+      "id": "e2cdfe1c-d70a-40a2-b258-86d9a187b9ff",
+      "name": "Update Referral Asked",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.1,
+      "position": [
+        2060,
+        480
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HU20SC9nDcO7AUXR",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Daily 10AM Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Applied Roles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Applied Roles": {
+      "main": [
+        [
+          {
+            "node": "Filter Due Followups",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Due Followups": {
+      "main": [
+        [
+          {
+            "node": "Build Followup Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Followup Payload": {
+      "main": [
+        [
+          {
+            "node": "Draft Recruiter Msg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draft Recruiter Msg": {
+      "main": [
+        [
+          {
+            "node": "Parse Followup Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Followup Draft": {
+      "main": [
+        [
+          {
+            "node": "Is Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Email?": {
+      "main": [
+        [
+          {
+            "node": "Send Gmail Followup",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is LinkedIn?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Gmail Followup": {
+      "main": [
+        [
+          {
+            "node": "Is Recruiter?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is LinkedIn?": {
+      "main": [
+        [
+          {
+            "node": "Send LinkedIn Followup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send LinkedIn Followup": {
+      "main": [
+        [
+          {
+            "node": "Is Recruiter?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Recruiter?": {
+      "main": [
+        [
+          {
+            "node": "Update Sent Timestamps",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Referral Asked",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "id": "followup"
+}

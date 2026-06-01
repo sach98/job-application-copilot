@@ -1,0 +1,506 @@
+{
+  "name": "JobHunt - Apply",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "jobhunt/api/queue",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "e0bdeca4-1c5d-4f11-bde9-e6cb0f23cbcd",
+      "name": "get_queue_webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        100,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1qaMc57-B2-3TQ76dRBufU305DDsff0B8Oh0R__KfA4Q"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "applications",
+          "mode": "name"
+        }
+      },
+      "id": "a9fdc2fb-e67c-48be-850d-83b6b19da2ed",
+      "name": "Read Applications Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.1,
+      "position": [
+        320,
+        160
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HU20SC9nDcO7AUXR",
+          "name": "Google Sheets account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $items('Read Applications Sheet');\nconst jobs = items.map(i => i.json);\nconst today = new Date().toISOString().split('T')[0];\n\n// Surface all un-acted roles (everything except applied/skipped) so old\n// reviewed-but-untouched jobs reappear in the queue.\nconst ACTED = new Set(['applied', 'skipped']);\nconst queuedRoles = jobs.filter(j => j.status && !ACTED.has(j.status)).map(j => ({\n  id: j.id || j.jd_url,\n  company: j.company,\n  role: j.role,\n  salary: j.salary,\n  fit_score: parseFloat(j.fit_score || 0),\n  source: j.source,\n  location: j.location,\n  posted_at: j.posted_at,\n  fit_summary_3_bullets: (() => { try { return j.fit_summary ? JSON.parse(j.fit_summary) : []; } catch (e) { return []; } })(),\n  hiring_mgr: {\n    name: j.hiring_mgr_name,\n    title: j.hiring_mgr_title,\n    linkedin_url: j.hiring_mgr_linkedin\n  },\n  jd_excerpt: j.jd_text ? j.jd_text.slice(0, 1000) : '',\n  cl_preview: j.cl_preview || '',\n  cl_url: j.cl_url || '',\n  tailored_resume_diff_preview: j.resume_diff_preview || '',\n  resume_url: j.resume_url || '',\n  team_members: j.team_members || '[]'\n}));\n\nconst todayApplied = jobs.filter(j => j.status === 'applied' && j.applied_at && j.applied_at.startsWith(today)).length;\nconst pendingReview = jobs.filter(j => j.status === 'pending_review').length;\n\nreturn {\n  roles: queuedRoles,\n  cap: 5,\n  today_applied: todayApplied,\n  pending_review_count: pendingReview\n};"
+      },
+      "id": "d0e1fe1c-d70a-40a2-b258-86d9a187b4ee",
+      "name": "Format Queue Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "fd9e85ca-1a1b-4f9e-bd9d-8d481f8f7c5f",
+      "name": "Respond to Queue Request",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        760,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "jobhunt/api/swipe",
+        "options": {}
+      },
+      "id": "e0bdeca4-1c5d-4f11-bde9-e6cb0f23cbcc",
+      "name": "swipe_webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        100,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "rules",
+        "dataType": "string",
+        "value1": "={{$json.action}}",
+        "rules": {
+          "rules": [
+            {
+              "operation": "equal",
+              "value2": "apply",
+              "output": 0
+            },
+            {
+              "operation": "equal",
+              "value2": "skip",
+              "output": 1
+            },
+            {
+              "operation": "equal",
+              "value2": "save",
+              "output": 2
+            }
+          ]
+        }
+      },
+      "id": "a9fdc2fb-e67c-48be-850d-83b6b19da2ef",
+      "name": "Check Swipe Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        360,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "command": "$JOBHUNT_ROOT/.venv/bin/python $JOBHUNT_ROOT/playwright_scripts/apply.py --url \"{{$json.jd_url}}\" --job-id \"{{$json.role_id}}\" --company \"{{$json.company}}\" --role \"{{$json.role}}\" --webhook \"http://localhost:5678/webhook/jobhunt/api\" --submit"
+      },
+      "id": "cb1cde3d-0d67-4a0b-967a-28956e18f26a",
+      "name": "Dispatch Playwright Bot",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        560,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1qaMc57-B2-3TQ76dRBufU305DDsff0B8Oh0R__KfA4Q"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "applications",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{$json.id}}",
+            "status": "={{$json.status}}",
+            "applied_at": "={{$json.applied_at}}",
+            "followup_1_due": "={{$json.followup_1_due}}",
+            "followup_2_due": "={{$json.followup_2_due}}"
+          },
+          "matchingColumns": [
+            "id"
+          ]
+        }
+      },
+      "id": "18cfd2fb-a5a4-4dfb-9db3-a006dbfcfd19",
+      "name": "Mark Applied in Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.1,
+      "position": [
+        840,
+        300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HU20SC9nDcO7AUXR",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1qaMc57-B2-3TQ76dRBufU305DDsff0B8Oh0R__KfA4Q"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "applications",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{$json.id}}",
+            "status": "={{$json.status}}"
+          },
+          "matchingColumns": [
+            "id"
+          ]
+        }
+      },
+      "id": "b1b11e8a-e87f-47cf-89bd-a006dbfcfd4b",
+      "name": "Mark Skipped",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.1,
+      "position": [
+        560,
+        420
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HU20SC9nDcO7AUXR",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1qaMc57-B2-3TQ76dRBufU305DDsff0B8Oh0R__KfA4Q"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "applications",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{$json.id}}",
+            "status": "={{$json.status}}"
+          },
+          "matchingColumns": [
+            "id"
+          ]
+        }
+      },
+      "id": "b1b11e8a-e87f-47cf-89bd-a006dbfcfd4c",
+      "name": "Save/Postpone Status",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.1,
+      "position": [
+        560,
+        540
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HU20SC9nDcO7AUXR",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "jobhunt/api/essay",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "c0e1fe1c-d70a-40a2-b258-86d9a187b4ee",
+      "name": "essay_webhook_api",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        100,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Incoming POST payload lives under .body. Base64-encode it so the shell\n// command never has to quote arbitrary question / JD text. essay.py decodes\n// --input-b64 and injects profile_answers + the role's tailored CL itself.\nconst body = $json.body || $json || {};\nconst b64 = Buffer.from(JSON.stringify(body)).toString('base64');\nreturn { essay_b64: b64 };"
+      },
+      "id": "ab1cde3d-0d67-4a0b-967a-28956e18f2b1",
+      "name": "Build Essay Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "command": "$JOBHUNT_ROOT/.venv/bin/python $JOBHUNT_ROOT/playwright_scripts/essay.py --input-b64 \"{{$json.essay_b64}}\""
+      },
+      "id": "cb1cde3d-0d67-4a0b-967a-28956e18f26b",
+      "name": "Draft Custom Essay Answer",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        440,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// essay.py prints one JSON object on stdout: {answer, char_count,\n// confidence, needs_human_review_reason}. Parse it defensively.\nlet out;\ntry {\n  out = JSON.parse(($json.stdout || '').trim());\n} catch (e) {\n  out = { answer: '', confidence: 0.0, needs_human_review_reason: 'unparseable essay output' };\n}\nreturn out;"
+      },
+      "id": "bc1cde3d-0d67-4a0b-967a-28956e18f2b2",
+      "name": "Parse Essay Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        620,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ answer: $json.answer || '', confidence: $json.confidence || 0, needs_human_review_reason: $json.needs_human_review_reason || '' }) }}",
+        "options": {}
+      },
+      "id": "fd9e85ca-1a1b-4f9e-bd9d-8d481f8f7c5f",
+      "name": "Respond with Essay",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        800,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body || {};\nconst action = body.action;\n\nconst today = new Date();\nconst istOffset = 5.5 * 60 * 60 * 1000;\nconst istTime = new Date(today.getTime() + istOffset);\nconst appliedAt = istTime.toISOString().replace('Z', '+05:30');\n\nconst f1_due_date = new Date(istTime.getTime() + 7 * 24 * 60 * 60 * 1000);\nconst f1_due = f1_due_date.toISOString().split('T')[0];\n\nconst f2_due_date = new Date(istTime.getTime() + 14 * 24 * 60 * 60 * 1000);\nconst f2_due = f2_due_date.toISOString().split('T')[0];\n\nlet status = 'skipped';\nif (action === 'apply') status = 'applied';\nelse if (action === 'save') status = 'queued';\n\nreturn {\n  id: body.role_id,\n  role_id: body.role_id,\n  action: action,\n  status: status,\n  company: body.company,\n  role: body.role,\n  jd_url: body.jd_url,\n  team_members: body.team_members,\n  applied_at: appliedAt,\n  followup_1_due: f1_due,\n  followup_2_due: f2_due\n};"
+      },
+      "id": "e2cdfe1c-d70a-40a2-b258-86d9a187b411",
+      "name": "Prepare Swipe Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        210,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const swipeData = $node[\"Prepare Swipe Data\"].json;\nreturn {\n  id: swipeData.id,\n  status: 'applied',\n  applied_at: swipeData.applied_at,\n  followup_1_due: swipeData.followup_1_due,\n  followup_2_due: swipeData.followup_2_due\n};"
+      },
+      "id": "e2cdfe1c-d70a-40a2-b258-86d9a187b422",
+      "name": "Prepare Applied Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "get_queue_webhook": {
+      "main": [
+        [
+          {
+            "node": "Read Applications Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Applications Sheet": {
+      "main": [
+        [
+          {
+            "node": "Format Queue Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Queue Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Queue Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "swipe_webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Swipe Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Swipe Action": {
+      "main": [
+        [
+          {
+            "node": "Dispatch Playwright Bot",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Skipped",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save/Postpone Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dispatch Playwright Bot": {
+      "main": [
+        [
+          {
+            "node": "Prepare Applied Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "essay_webhook_api": {
+      "main": [
+        [
+          {
+            "node": "Build Essay Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Essay Payload": {
+      "main": [
+        [
+          {
+            "node": "Draft Custom Essay Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draft Custom Essay Answer": {
+      "main": [
+        [
+          {
+            "node": "Parse Essay Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Essay Output": {
+      "main": [
+        [
+          {
+            "node": "Respond with Essay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Swipe Data": {
+      "main": [
+        [
+          {
+            "node": "Check Swipe Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Applied Update": {
+      "main": [
+        [
+          {
+            "node": "Mark Applied in Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "id": "apply"
+}

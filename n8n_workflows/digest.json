@@ -1,0 +1,158 @@
+{
+  "name": "JobHunt - Digest",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "55 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "e0bdeca4-1c5d-4f11-bde9-e6cb0f23cbce",
+      "name": "Daily Morning Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        100,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 18 * * 0"
+            }
+          ]
+        }
+      },
+      "id": "e0bdeca4-1c5d-4f11-bde9-e6cb0f23cbcf",
+      "name": "Weekly Review Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        100,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1qaMc57-B2-3TQ76dRBufU305DDsff0B8Oh0R__KfA4Q"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "applications",
+          "mode": "name"
+        }
+      },
+      "id": "a9fdc2fb-e67c-48be-850d-83b6b19da2ec",
+      "name": "Get Application Sheet Data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.1,
+      "position": [
+        340,
+        280
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HU20SC9nDcO7AUXR",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $items('Get Application Sheet Data');\nconst jobs = items.map(i => i.json);\n\n// Compute statistics\nconst newCount = jobs.filter(j => j.status === 'new').length;\nconst queuedCount = jobs.filter(j => j.status === 'queued').length;\nconst appliedCount = jobs.filter(j => j.status === 'applied').length;\nconst respondedCount = jobs.filter(j => j.status === 'responded').length;\nconst interviewCount = jobs.filter(j => j.status === 'interview').length;\n\nreturn {\n  new_count: newCount,\n  queued_count: queuedCount,\n  applied_count: appliedCount,\n  responded_count: respondedCount,\n  interview_count: interviewCount,\n  total_tracked: jobs.length\n};"
+      },
+      "id": "d0e1fe1c-d70a-40a2-b258-86d9a187b4ee",
+      "name": "Compute Stats",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "to": "candidate@example.com",
+        "subject": "JobHunt Autopilot Status Briefing",
+        "emailType": "text",
+        "body": "=Good morning,\n\nHere is your daily JobHunt Autopilot summary:\n\nTotal Tracked Roles: {{$json.total_tracked}}\nNew Discoveries Scraped: {{$json.new_count}}\nRoles Queued (Tinder App): {{$json.queued_count}}\nApplications Submitted: {{$json.applied_count}}\nActive Responses: {{$json.responded_count}}\nInterviews In-Progress: {{$json.interview_count}}\n\nHave a productive day!\nJobHunt Autopilot"
+      },
+      "id": "b1b11e8a-e87f-47cf-89bd-a006dbfcfd4d",
+      "name": "Send Digest Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        780,
+        280
+      ],
+      "credentials": {
+        "gmailOAuth2Api": {
+          "id": "23BthT7HDa8du2B6",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Daily Morning Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Application Sheet Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly Review Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Application Sheet Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Application Sheet Data": {
+      "main": [
+        [
+          {
+            "node": "Compute Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Stats": {
+      "main": [
+        [
+          {
+            "node": "Send Digest Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "id": "digest"
+}

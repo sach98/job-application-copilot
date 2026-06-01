@@ -1,0 +1,37 @@
+{
+  "job_posting": {
+    "id": "synth-004",
+    "company": "Blue Harbor Advisory",
+    "role": "Business Analyst, Digital Transformation",
+    "source": "synthetic_ats",
+    "location": "Hybrid, Mumbai, India",
+    "jd_url": "https://example.com/jobs/synth-004",
+    "jd_text": "Synthetic posting for demo use. Responsibilities include stakeholder discovery, process mapping, SQL-backed analysis, dashboard requirements, and implementation handoff. No real employer or candidate data is represented."
+  },
+  "scored": {
+    "fit_score": 0.81,
+    "fit_summary_3_bullets": [
+      "Consulting BA responsibilities align with stakeholder and process work.",
+      "Travel and hybrid expectations need confirmation.",
+      "No unsupported certifications added."
+    ],
+    "red_flags": []
+  },
+  "tailored_output": {
+    "tailored_resume_markdown": "# {{candidate_name}}\n\n## Professional Summary\nBusiness analyst profile tailored only from verified master-resume evidence.\n\n## Experience\n- Reframed existing process-mapping and analytics work toward the synthetic role requirements.\n- Preserved only tools, domains, dates, and outcomes present in the master resume.\n",
+    "cover_letter": "Dear Hiring Team, this synthetic draft demonstrates tone and structure without using private candidate history.",
+    "interviewer_questions": [
+      "How is success measured for this role?",
+      "Which workflows need the most discovery?",
+      "What data sources are available to analysts?"
+    ]
+  },
+  "audit": {
+    "clean": true,
+    "fabrications": [],
+    "dropped_claims": [
+      "Removed any claim not traceable to the master resume."
+    ],
+    "fit_score_after_audit": 0.81
+  }
+}

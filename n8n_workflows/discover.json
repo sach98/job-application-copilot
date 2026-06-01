@@ -1,0 +1,274 @@
+{
+  "name": "JobHunt - Discover",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 9,12,16 * * *"
+            }
+          ]
+        }
+      },
+      "id": "806ecde3-8208-410a-b33a-d34346bc77aa",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "command": "$JOBHUNT_ROOT/.venv/bin/python $JOBHUNT_ROOT/scrapers/jobspy_wrapper.py --sites linkedin,indeed,glassdoor --keywords \"business analyst\" --location \"Delhi, India\" --since \"{{$json.timestamp || new Date(Date.now() - 24*3600*1000).toISOString()}}\""
+      },
+      "id": "a823528b-b851-4091-a185-5b4cf53b0e3f",
+      "name": "Run JobSpy",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        320,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "command": "$JOBHUNT_ROOT/.venv/bin/python $JOBHUNT_ROOT/scrapers/google_jobs_apify.py --location \"Delhi, India\" --since \"{{$json.timestamp || new Date(Date.now() - 24*3600*1000).toISOString()}}\""
+      },
+      "id": "e67b2d56-a19e-4e44-b25c-0c67cb72179d",
+      "name": "Run Google Jobs Apify",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        320,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "command": "$JOBHUNT_ROOT/.venv/bin/python $JOBHUNT_ROOT/scrapers/wellfound.py --since \"{{$json.timestamp || new Date(Date.now() - 24*3600*1000).toISOString()}}\""
+      },
+      "id": "cc0393fe-c5a4-4dfb-9db3-28956e18f26a",
+      "name": "Run Wellfound Scraper",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        320,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const allJobs = [];\n\nfunction addJobs(nodeName) {\n  try {\n    const items = $items(nodeName);\n    for (const item of items) {\n      if (item.json && item.json.stdout) {\n        const parsed = JSON.parse(item.json.stdout);\n        if (Array.isArray(parsed)) {\n          allJobs.push(...parsed);\n        }\n      }\n    }\n  } catch (e) {}\n}\n\naddJobs('Run JobSpy');\naddJobs('Run Google Jobs Apify');\naddJobs('Run Wellfound Scraper');\n\n// Get existing job IDs\nconst existingIds = new Set();\ntry {\n  const existingItems = $items('Get Existing Jobs');\n  for (const item of existingItems) {\n    if (item.json && item.json.id) {\n      existingIds.add(String(item.json.id).trim());\n    }\n  }\n} catch (e) {}\n\n// Filter out duplicates (if mapped ID or external_id is already in existingIds)\nconst filteredJobs = allJobs.map(job => {\n  const mapped = { ...job, id: job.external_id };\n  delete mapped.external_id;\n  return mapped;\n}).filter(job => {\n  if (!job.id) return false;\n  return !existingIds.has(String(job.id).trim());\n});\n\nreturn filteredJobs.map(job => ({ json: job }));"
+      },
+      "id": "d0e1fe1c-d70a-40a2-b258-86d9a187bcf9",
+      "name": "Merge & Normalise",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        580,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1qaMc57-B2-3TQ76dRBufU305DDsff0B8Oh0R__KfA4Q"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "applications",
+          "mode": "name"
+        },
+        "options": {},
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{$json.id}}",
+            "date": "={{$json.scraped_at}}",
+            "company": "={{$json.company}}",
+            "role": "={{$json.title}}",
+            "source": "={{$json.source}}",
+            "jd_url": "={{$json.jd_url}}",
+            "posted_at": "={{$json.posted_at}}",
+            "salary": "={{$json.salary}}",
+            "status": "new",
+            "location": "={{$json.location}}"
+          }
+        }
+      },
+      "id": "b1b11e8a-e87f-47cf-89bd-a006dbfcfd19",
+      "name": "Save New Applications",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.1,
+      "position": [
+        820,
+        300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HU20SC9nDcO7AUXR",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/score/webhook_trigger/jobhunt/score",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "run_score",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fd9e85ca-1a1b-4f9e-bd9d-8d481f8f7c9e",
+      "name": "Trigger Scoring",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1040,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1qaMc57-B2-3TQ76dRBufU305DDsff0B8Oh0R__KfA4Q"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "applications",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "e3b320df-1c5d-4f11-bde9-e6cb0f23cbcd",
+      "name": "Get Existing Jobs",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.1,
+      "position": [
+        320,
+        580
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HU20SC9nDcO7AUXR",
+          "name": "Google Sheets account"
+        }
+      },
+      "alwaysOutputData": true
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Run JobSpy",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Run Google Jobs Apify",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Run Wellfound Scraper",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Existing Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run JobSpy": {
+      "main": [
+        [
+          {
+            "node": "Merge & Normalise",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Google Jobs Apify": {
+      "main": [
+        [
+          {
+            "node": "Merge & Normalise",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Wellfound Scraper": {
+      "main": [
+        [
+          {
+            "node": "Merge & Normalise",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge & Normalise": {
+      "main": [
+        [
+          {
+            "node": "Save New Applications",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save New Applications": {
+      "main": [
+        [
+          {
+            "node": "Trigger Scoring",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Existing Jobs": {
+      "main": [
+        [
+          {
+            "node": "Merge & Normalise",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "id": "discover"
+}

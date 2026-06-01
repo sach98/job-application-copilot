@@ -1,0 +1,13 @@
+.env
+.browser-profile/
+.venv/
+applications/
+screenshots/
+logs/
+profile/
+github-work/
+*.log
+*.pid
+.DS_Store
+__pycache__/
+*.pyc

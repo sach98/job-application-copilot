@@ -1,0 +1,309 @@
+{
+  "name": "JobHunt - Score",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "jobhunt/score",
+        "options": {}
+      },
+      "id": "e0bdeca4-1c5d-4f11-bde9-e6cb0f23cbfa",
+      "name": "webhook_trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1qaMc57-B2-3TQ76dRBufU305DDsff0B8Oh0R__KfA4Q"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "applications",
+          "mode": "name"
+        },
+        "filters": {
+          "selfConfirm": true,
+          "values": [
+            {
+              "column": "status",
+              "condition": "equal",
+              "value": "new"
+            }
+          ]
+        }
+      },
+      "id": "a9fdc2fb-e67c-48be-850d-83b6b19da2ea",
+      "name": "Get New Roles",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.1,
+      "position": [
+        300,
+        300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HU20SC9nDcO7AUXR",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Base64-encode the role row so the shell command never quotes JD text.\n// score.py decodes --input-b64 and injects profile skills + tier-A list.\nconst row = $json;\nreturn { ...row, score_b64: Buffer.from(JSON.stringify(row)).toString('base64') };"
+      },
+      "id": "ab1cde3d-0d67-4a0b-967a-28956e18f2c1",
+      "name": "Build Score Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "command": "$JOBHUNT_ROOT/.venv/bin/python $JOBHUNT_ROOT/playwright_scripts/score.py --input-b64 \"{{$json.score_b64}}\""
+      },
+      "id": "cb1cde3d-0d67-4a0b-967a-28956e18f26a",
+      "name": "Call Haiku Scorer",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        620,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// score.py prints one merged JSON object (row + fit_score + score_components\n// + status). Parse defensively so a bad row doesn't poison the batch.\nlet out;\ntry {\n  out = JSON.parse(($json.stdout || '').trim());\n} catch (e) {\n  out = { ...$json, status: 'score_failed', fit_score: 0 };\n}\nreturn out;"
+      },
+      "id": "bc1cde3d-0d67-4a0b-967a-28956e18f2c2",
+      "name": "Parse Score Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        820,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1qaMc57-B2-3TQ76dRBufU305DDsff0B8Oh0R__KfA4Q"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "applications",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{$json.id}}",
+            "fit_score": "={{$json.fit_score}}",
+            "score_components": "={{$json.score_components}}",
+            "status": "={{$json.status}}"
+          },
+          "matchingColumns": [
+            "id"
+          ]
+        }
+      },
+      "id": "18cfd2fb-a5a4-4dfb-9db3-a006dbfcfd19",
+      "name": "Update Fit Scores",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.1,
+      "position": [
+        1020,
+        300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HU20SC9nDcO7AUXR",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $items('Update Fit Scores');\nconst scored = items.map(i => i.json);\n// Sort desc by fit score\nscored.sort((a, b) => (b.fit_score || 0) - (a.fit_score || 0));\n// Pick top 5 and mark queued\nconst queued = scored.slice(0, 5).map(job => {\n  job.status = 'queued';\n  job.queued_at = new Date().toISOString();\n  return { json: job };\n});\nreturn queued;"
+      },
+      "id": "d0e1fe1c-d70a-40a2-b258-86d9a187b4ea",
+      "name": "Select Top 5",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1qaMc57-B2-3TQ76dRBufU305DDsff0B8Oh0R__KfA4Q"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "applications",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{$json.id}}",
+            "status": "={{$json.status}}",
+            "queued_at": "={{$json.queued_at}}"
+          },
+          "matchingColumns": [
+            "id"
+          ]
+        }
+      },
+      "id": "b1b11e8a-e87f-47cf-89bd-a006dbfcfd4a",
+      "name": "Queue Applications",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.1,
+      "position": [
+        1180,
+        300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HU20SC9nDcO7AUXR",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/jobhunt/tailor",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "run_tailor",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fd9e85ca-1a1b-4f9e-bd9d-8d481f8f7c5e",
+      "name": "Trigger Tailoring",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1400,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Get New Roles": {
+      "main": [
+        [
+          {
+            "node": "Build Score Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Score Payload": {
+      "main": [
+        [
+          {
+            "node": "Call Haiku Scorer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Haiku Scorer": {
+      "main": [
+        [
+          {
+            "node": "Parse Score Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Score Output": {
+      "main": [
+        [
+          {
+            "node": "Update Fit Scores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Fit Scores": {
+      "main": [
+        [
+          {
+            "node": "Select Top 5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Top 5": {
+      "main": [
+        [
+          {
+            "node": "Queue Applications",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Queue Applications": {
+      "main": [
+        [
+          {
+            "node": "Trigger Tailoring",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "webhook_trigger": {
+      "main": [
+        [
+          {
+            "node": "Get New Roles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "id": "score"
+}

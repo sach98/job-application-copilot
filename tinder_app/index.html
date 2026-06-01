@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en" class="theme-system">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>JobHunt · Today's Queue</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2314b8a6'/%3E%3Ctext x='16' y='22' font-family='Arial' font-size='18' font-weight='700' fill='white' text-anchor='middle'%3EJ%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+  <!-- Auth blocker -->
+  <div id="authBlocker" class="auth-blocker" hidden>
+    <div class="auth-card">
+      <h2>JobHunt review</h2>
+      <p>Sign in with your Google account to review today's queue.</p>
+      <button class="auth-btn" id="signinBtn">Sign in with Google</button>
+      <div class="small">Reviewer account only · session token cookie</div>
+    </div>
+  </div>
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="logo">Job<span class="dot">.</span>Hunt</div>
+    <div class="spacer"></div>
+    <div class="count" id="countLabel"><strong>0</strong> / 5 applied</div>
+    <div class="clock" id="clock">--:-- IST</div>
+    <button class="cog" id="trackerBtn" aria-label="Tracker">📊</button>
+    <button class="cog" id="cogBtn" aria-label="Settings">⚙</button>
+  </header>
+
+  <!-- Pending review banner -->
+  <div class="pending-banner" id="pendingBanner">
+    ⚠ <span id="pendingCount">0</span> application(s) pending your review · tap to open
+  </div>
+
+  <!-- Settings drawer -->
+  <div class="settings-drawer" id="settingsDrawer">
+    <label><input type="checkbox" id="pushToggle" /> Enable push notifications</label>
+    <label><input type="checkbox" id="themeToggle" /> Light mode</label>
+    <hr />
+    <div class="small">API base: <span id="apiBaseLabel">—</span></div>
+    <div class="small">Mode: <span id="modeLabel">—</span></div>
+  </div>
+
+  <!-- Card stack -->
+  <main class="stack-wrap">
+    <div class="stack" id="stack"></div>
+  </main>
+
+  <!-- Action bar -->
+  <nav class="actionbar" aria-label="Card actions">
+    <button class="skip" id="btnSkip" aria-label="Skip">
+      <span class="action-stack"><span class="glyph">←</span><span class="label">Skip</span></span>
+    </button>
+    <button class="edit" id="btnEdit" aria-label="Edit">
+      <span class="action-stack"><span class="glyph">↓</span><span class="label">Edit</span></span>
+    </button>
+    <button class="save" id="btnSave" aria-label="Save for later">
+      <span class="action-stack"><span class="glyph">↑</span><span class="label">Save</span></span>
+    </button>
+    <button class="apply" id="btnApply" aria-label="Apply">
+      <span class="action-stack"><span class="glyph">→</span><span class="label">Apply</span></span>
+    </button>
+  </nav>
+
+  <!-- Side panel -->
+  <aside class="side-panel" id="sidePanel" aria-hidden="true">
+    <button class="close" id="sideClose" aria-label="Close">✕</button>
+    <h2 id="spRole">—</h2>
+    <div class="sp-company" id="spCompany">—</div>
+    <section>
+      <h3>Job description</h3>
+      <div class="jd" id="spJd">—</div>
+    </section>
+    <section>
+      <h3>Tailored resume diff</h3>
+      <div class="preview diff" id="spResume">—</div>
+    </section>
+    <section>
+      <h3>Cover letter preview</h3>
+      <div class="preview" id="spCl">—</div>
+    </section>
+    <section>
+      <h3>Hiring manager</h3>
+      <div id="spHm">—</div>
+    </section>
+    <section>
+      <h3>Team &amp; referral contacts</h3>
+      <div id="spContacts">—</div>
+    </section>
+  </aside>
+
+  <!-- Tracker drawer -->
+  <aside class="tracker-drawer" id="trackerDrawer" aria-hidden="true">
+    <button class="close" id="trackerClose" aria-label="Close">✕</button>
+    <h2>Application tracker</h2>
+    <div id="trackerStats"></div>
+    <div id="trackerList"></div>
+  </aside>
+
+  <!-- Co-pilot apply flow modal -->
+  <div class="apply-modal" id="applyModal" aria-hidden="true">
+    <div class="apply-panel" role="dialog" aria-modal="true" aria-labelledby="apRole">
+      <button class="close" id="apClose" aria-label="Close">✕</button>
+      <div class="ap-head">
+        <div class="ap-company" id="apCompany">—</div>
+        <h2 id="apRole">—</h2>
+      </div>
+
+      <div class="ap-actions">
+        <button class="ap-open" id="apOpenApp">Open application ↗</button>
+        <button class="ap-link" id="apResume">Open tailored resume ↗</button>
+        <button class="ap-link" id="apCl">Open cover letter ↗</button>
+        <button class="ap-link" id="apRefSearch">Find referrals on LinkedIn ↗</button>
+        <button class="ap-link" id="apHmSearch">Find hiring manager ↗</button>
+      </div>
+
+      <section>
+        <h3>Application crib — copy answers as you go</h3>
+        <div id="apCrib">—</div>
+      </section>
+
+      <section>
+        <h3>How to apply (LinkedIn Easy Apply)</h3>
+        <ol class="ap-steps">
+          <li>Open the application above.</li>
+          <li>Click <strong>Easy Apply</strong> and upload the tailored resume.</li>
+          <li>Paste crib answers for any screening questions (double-check ⚠ fields).</li>
+          <li>Review everything, then submit it yourself.</li>
+        </ol>
+      </section>
+
+      <section>
+        <h3>Team &amp; referral contacts</h3>
+        <div id="apContacts">—</div>
+      </section>
+
+      <div class="ap-footer">
+        <button class="ap-applied" id="apApplied">Applied ✓</button>
+        <button class="ap-couldnt" id="apCouldnt">Couldn't apply</button>
+        <button class="ap-skip" id="apSkip">Skip</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast">—</div>
+
+  <script src="app.js?v=10"></script>
+</body>
+</html>
