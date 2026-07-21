@@ -15,7 +15,7 @@ from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
 sys.path.append(str(Path(__file__).parent))
 from lib.captcha import check_and_solve_captcha
 
-JOBHUNT_ROOT = Path(os.environ.get("JOBHUNT_ROOT", str(Path.home() / "JobHunt")))
+JOBHUNT_ROOT = Path(os.environ.get("JOBHUNT_ROOT") or (Path.home() / "JobHunt"))
 COMET_BIN = os.environ.get("COMET_BIN", "/Applications/Comet.app/Contents/MacOS/Comet")
 PROFILE_DIR = JOBHUNT_ROOT / ".browser-profile" / "comet"
 

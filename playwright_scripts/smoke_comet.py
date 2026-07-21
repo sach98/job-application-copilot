@@ -13,7 +13,7 @@ import time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
-JOBHUNT_ROOT = Path(os.environ.get("JOBHUNT_ROOT", str(Path.home() / "JobHunt")))
+JOBHUNT_ROOT = Path(os.environ.get("JOBHUNT_ROOT") or (Path.home() / "JobHunt"))
 COMET_BIN = os.environ.get("COMET_BIN", "/Applications/Comet.app/Contents/MacOS/Comet")
 PROFILE_DIR = JOBHUNT_ROOT / ".browser-profile" / "comet"
 SCREENSHOT = JOBHUNT_ROOT / "screenshots" / "smoke_comet.png"

@@ -4,6 +4,7 @@ Run: .venv/bin/python -m unittest playwright_scripts.tests.test_queue_logic
   (or)  cd playwright_scripts && ../.venv/bin/python -m unittest tests.test_queue_logic
 """
 
+import json
 import shutil
 import sys
 import tempfile
@@ -127,6 +128,70 @@ class CoverLetterProductionBehaviourTests(unittest.TestCase):
         self.tmp.mkdir(parents=True, exist_ok=True)
         silent = self._run("No mention of any letter here at all.")[1] / "cover_letter.md"
         self.assertEqual(asks_text, silent.read_text(encoding="utf-8"))
+
+
+class CarriedCardRegateTests(unittest.TestCase):
+    """Every build re-applies the queue bar to carried-over cards.
+
+    Carried cards are never re-tailored, so this filter is the ONLY thing that can evict a
+    card written by an older build under a laxer gate. These tests drive main() end to end
+    with an empty jobs file, so the carry-over path is the only code that runs and the
+    written local_queue.json is the oracle.
+    """
+
+    # Hand-computed against the default tailored gate of 0.80.
+    CARRIED = [
+        # 0.88 clears the gate outright.
+        {"id": "keep-ncr", "jd_url": "http://x/1", "fit_score": 0.88, "location": "Gurgaon"},
+        # 0.79 is below the gate but at/above the 0.78 pre-tailor standout threshold. It
+        # must NOT survive: standout is a pre-tailor concession, not a queue bar.
+        {"id": "drop-standout", "jd_url": "http://x/2", "fit_score": 0.79, "location": "Chennai"},
+        # 0.65 clears the 0.60 pre-tailor floor in NCR but not the 0.80 gate. It must NOT
+        # survive: re-gating at the pre-tailor floor would be no gate at all.
+        {"id": "drop-prefloor", "jd_url": "http://x/3", "fit_score": 0.65, "location": "Noida"},
+        # Exactly at the gate, non-NCR. Location was settled before tailoring, so it stays.
+        {"id": "keep-boundary", "jd_url": "http://x/4", "fit_score": 0.80, "location": "Mumbai"},
+    ]
+
+    def build(self, carried, gate=None):
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        jobs_file = tmp / "jobs.json"
+        jobs_file.write_text("[]", encoding="utf-8")  # no fresh jobs: carry-over path only
+        out = tmp / "local_queue.json"
+        argv = ["build_local_queue.py", "--jobs", str(jobs_file)]
+        if gate is not None:
+            argv += ["--tailored-gate", str(gate)]
+        with patch.object(bq, "load_existing_cards", return_value=[dict(c) for c in carried]), \
+             patch.object(bq, "load_acted_ids", return_value=set()), \
+             patch.object(bq, "today_applied_count", return_value=0), \
+             patch.object(bq, "load_score_cache", return_value={}), \
+             patch.object(bq, "SCORE_CACHE", tmp / "_score_cache.json"), \
+             patch.object(bq, "OUT", out), \
+             patch.object(bq, "log", lambda msg: None), \
+             patch.object(sys, "argv", argv):
+            self.assertEqual(bq.main(), 0)
+        return json.loads(out.read_text(encoding="utf-8"))
+
+    def test_only_cards_at_or_above_the_gate_are_written_back(self):
+        payload = self.build(self.CARRIED)
+        self.assertEqual([c["id"] for c in payload["roles"]], ["keep-ncr", "keep-boundary"])
+
+    def test_the_count_the_app_shows_matches_the_surviving_cards(self):
+        payload = self.build(self.CARRIED)
+        self.assertEqual(payload["pending_review_count"], 2)
+
+    def test_raising_the_gate_evicts_cards_the_old_gate_admitted(self):
+        # The regression this filter exists to stop: a 0.83 card queued under a 0.80 gate
+        # must disappear once the gate moves to 0.85.
+        card = [{"id": "old", "jd_url": "http://x/9", "fit_score": 0.83, "location": "Delhi"}]
+        self.assertEqual([c["id"] for c in self.build(card)["roles"]], ["old"])
+        self.assertEqual(self.build(card, gate=0.85)["roles"], [])
+
+    def test_lowering_the_gate_admits_a_card_the_old_gate_rejected(self):
+        card = [{"id": "near", "jd_url": "http://x/8", "fit_score": 0.72, "location": "Delhi"}]
+        self.assertEqual(self.build(card)["roles"], [])
+        self.assertEqual([c["id"] for c in self.build(card, gate=0.70)["roles"]], ["near"])
 
 
 class ScoreCacheKeyTests(unittest.TestCase):

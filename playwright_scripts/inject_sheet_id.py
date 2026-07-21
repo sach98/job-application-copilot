@@ -36,7 +36,7 @@ def main():
         print("[-] Please provide a valid Sheet ID.", file=sys.stderr)
         return 1
         
-    workflow_dir = Path(os.environ.get("JOBHUNT_ROOT", str(Path.home() / "JobHunt"))) / "n8n_workflows"
+    workflow_dir = Path(os.environ.get("JOBHUNT_ROOT") or (Path.home() / "JobHunt")) / "n8n_workflows"
     print(f"[*] Injecting Sheet ID '{sheet_id}' into n8n workflows under {workflow_dir}...")
     
     json_files = list(workflow_dir.glob("*.json"))

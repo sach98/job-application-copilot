@@ -83,6 +83,37 @@ class JobhuntRootTests(unittest.TestCase):
             with self.subTest(path=str(p)):
                 self.assertTrue(p.is_relative_to(expected_root))
 
+    def test_empty_env_var_falls_back_instead_of_resolving_to_the_cwd(self):
+        """`export JOBHUNT_ROOT=` (or an unset var expanded by a shell) is an empty string.
+
+        os.environ.get("JOBHUNT_ROOT", default) returns "" in that case, and Path("") is
+        Path("."), so a module using that idiom silently retargets the whole tree at the
+        current working directory while a module using the `or` idiom keeps ~/JobHunt. That
+        split would have the queue writer and the queue server reading different files.
+        """
+        paths = self._paths_under("")
+        expected_root = Path.home() / "JobHunt"
+        for p in paths:
+            with self.subTest(path=str(p)):
+                self.assertTrue(p.is_absolute(), f"{p} resolved relative to the CWD")
+                self.assertTrue(p.is_relative_to(expected_root))
+
+    def test_every_module_uses_the_falsy_safe_lookup_idiom(self):
+        """Source guard for the modules the import-time test cannot reach.
+
+        smoke_comet, linkedin_referrals and scrapers/lib/playwright_common import playwright
+        at module scope, so they cannot be imported in a dependency-free test run. Assert on
+        their source instead: the two-argument os.environ.get form is the bug above.
+        """
+        offenders = []
+        for py in sorted(REPO_ROOT.rglob("*.py")):
+            if ".venv" in py.parts or "tests" in py.parts:
+                continue
+            for lineno, line in enumerate(py.read_text(encoding="utf-8").splitlines(), 1):
+                if 'os.environ.get("JOBHUNT_ROOT",' in line:
+                    offenders.append(f"{py.relative_to(REPO_ROOT)}:{lineno}")
+        self.assertEqual(offenders, [], "use os.environ.get(\"JOBHUNT_ROOT\") or <default>")
+
     def test_no_module_hardcodes_the_home_jobhunt_path(self):
         """Guards against a new file reintroducing Path.home() / "JobHunt"."""
         offenders = []

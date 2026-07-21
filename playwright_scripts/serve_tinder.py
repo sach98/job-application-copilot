@@ -13,7 +13,7 @@ from pathlib import Path
 
 
 PORT = int(os.environ.get("REVIEW_PORT", "8765"))
-JOBHUNT_ROOT = Path(os.environ.get("JOBHUNT_ROOT", str(Path.home() / "JobHunt")))
+JOBHUNT_ROOT = Path(os.environ.get("JOBHUNT_ROOT") or (Path.home() / "JobHunt"))
 TINDER_APP_DIR = JOBHUNT_ROOT / "tinder_app"
 
 # Basic Auth guards the public Tailscale funnel (serves resume/PII). Creds come

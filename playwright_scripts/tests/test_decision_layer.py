@@ -1,15 +1,18 @@
 """Behaviour tests for the queue decision layer.
 
-Covers the three functions that decide whether a role reaches a human:
-  _loc_ok           location policy
-  _keep             fit + location policy
-  tailor_and_gate   correctness audit + the fit gate on the TAILORED result
+Covers the four functions that decide whether a role reaches a human:
+  _loc_ok            location policy
+  _keep              fit + location policy (pre-tailor)
+  _at_or_above_gate  the queue bar re-applied to an already-tailored card
+  tailor_and_gate    correctness audit + the fit gate on the TAILORED result
 
 Every expected value below is hand-computed from the documented policy, not read back
 from the implementation. Run:
   cd playwright_scripts && ../.venv/bin/python -m unittest tests.test_decision_layer
 """
 
+import contextlib
+import io
 import sys
 import unittest
 from pathlib import Path
@@ -95,6 +98,34 @@ class KeepTests(unittest.TestCase):
     def test_string_fit_score_is_coerced(self):
         self.assertTrue(bq._keep({"fit_score": "0.82", "location": "Bangalore"},
                                  self.MIN, self.STANDOUT, False))
+
+
+class AtOrAboveGateTests(unittest.TestCase):
+    """The re-gate applied to carried-over cards. A card that already went through the
+    tailor gauntlet is judged on its audited score alone: location and standout status were
+    settled before it was tailored, so neither may resurrect a card below the bar."""
+
+    def test_boundary_is_inclusive(self):
+        self.assertTrue(bq._at_or_above_gate({"fit_score": 0.80}, 0.80))
+        self.assertFalse(bq._at_or_above_gate({"fit_score": 0.79}, 0.80))
+
+    def test_standout_score_does_not_readmit_a_card_below_the_gate(self):
+        # The pre-tailor standout threshold (0.78) sits BELOW the tailored gate (0.80).
+        # Routing this decision through _keep would let 0.78-0.799 cards from anywhere
+        # survive a bar they never cleared, which is the exact staleness the re-gate exists
+        # to prevent. Shown here as a contrast so the difference cannot silently regress.
+        stale = {"fit_score": 0.79, "location": "Chennai"}
+        self.assertTrue(bq._keep(stale, 0.80, 0.78, False), "_keep would readmit it")
+        self.assertFalse(bq._at_or_above_gate(stale, 0.80), "the re-gate must not")
+
+    def test_location_is_not_re_litigated(self):
+        # Decided before tailoring. A non-NCR card that cleared the gate on merit stays.
+        self.assertTrue(bq._at_or_above_gate({"fit_score": 0.84, "location": "Pune"}, 0.80))
+
+    def test_missing_or_string_fit_score(self):
+        self.assertFalse(bq._at_or_above_gate({}, 0.80))
+        self.assertFalse(bq._at_or_above_gate({"fit_score": None}, 0.80))
+        self.assertTrue(bq._at_or_above_gate({"fit_score": "0.91"}, 0.80))
 
 
 class _Stub:
@@ -183,6 +214,26 @@ class TailorAndGateTests(unittest.TestCase):
         tailored, reason = self.run_gate(stub)
         self.assertIsNone(tailored)
         self.assertEqual(reason, "below_gate")
+
+    def test_a_worse_scoring_retry_is_not_adopted(self):
+        """A clean retry that scores WORSE than the first pass must be discarded.
+
+        Both variants drop the role (a worse retry is below the gate by construction), so
+        the return value cannot tell them apart. The difference is the operator-facing DROP
+        diagnostic, which must quote the best honest attempt (0.79) and not the discarded
+        retry (0.60). refresh_queue.sh surfaces this line, and an operator deciding whether
+        a near-miss role is worth revisiting reads that number.
+        """
+        stub = _Stub([{"id": "r1"}, {"id": "r1-worse"}],
+                     [audit(fit=0.79, missing=["SQL"]), audit(fit=0.60)])
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            tailored, reason = self.run_gate(stub)
+        self.assertIsNone(tailored)
+        self.assertEqual(reason, "below_gate")
+        drop_line = next(l for l in err.getvalue().splitlines() if "DROP" in l)
+        self.assertIn("0.79", drop_line)
+        self.assertNotIn("0.60", drop_line)
 
     def test_below_retry_band_spends_no_retry(self):
         stub = _Stub([{"id": "r1"}], [audit(fit=0.40)])

@@ -48,6 +48,14 @@ the role is dropped, not rounded up.
 Correctness outranks fit throughout: a re-tailor that scores higher but reintroduces a
 fabrication is refused.
 
+Cards already sitting in the queue are re-gated on every build
+(`build_local_queue._at_or_above_gate`). Carried cards are never re-tailored, so this is
+the only thing that can evict a card that was queued when the gate was lower. It compares
+the audited tailored score against `--tailored-gate` and nothing else: the `--standout-fit`
+concession is a pre-tailor allowance that sits below the gate, so applying it here would
+readmit exactly the stale cards the re-gate exists to remove. Location is not re-litigated
+either, having been settled before the card was tailored.
+
 Both gates are visible in the committed sample run. Of four synthetic postings, one is
 dropped by the pre-tailor floor, one is dropped by the tailored-fit gate after its retry
 reaches only 0.71, and two are queued at 0.88 and 0.83. Regenerate and confirm with:

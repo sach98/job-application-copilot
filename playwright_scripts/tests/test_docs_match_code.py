@@ -8,7 +8,6 @@ the suite goes red.
 Run: cd playwright_scripts && ../.venv/bin/python -m unittest tests.test_docs_match_code
 """
 
-import argparse
 import sys
 import unittest
 from pathlib import Path
@@ -20,15 +19,13 @@ import build_local_queue as bq
 
 
 def cli_defaults():
-    """The real defaults, read off the parser build_local_queue.main() constructs."""
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--jobs", required=True)
-    ap.add_argument("--top", type=int, default=25)
-    ap.add_argument("--min-fit", type=float, default=0.60)
-    ap.add_argument("--tailored-gate", type=float, default=bq.TAILORED_FIT_GATE)
-    ap.add_argument("--all-locations", action="store_true")
-    ap.add_argument("--standout-fit", type=float, default=0.78)
-    return ap.parse_args(["--jobs", "x"])
+    """The real defaults, parsed out of the shipped parser itself.
+
+    This MUST NOT rebuild the parser: a hand-copied duplicate would let a default drift in
+    build_local_queue.py while these tests kept asserting against the stale copy. Every
+    number below therefore comes from the same argparse object main() runs on.
+    """
+    return bq.build_parser().parse_args(["--jobs", "x"])
 
 
 class ReadmeThresholdsTests(unittest.TestCase):
@@ -51,11 +48,24 @@ class ReadmeThresholdsTests(unittest.TestCase):
         self.assertIn(f"{bq.RETRY_LOW:.2f}", self.readme)
 
     def test_readme_names_the_functions_that_implement_each_gate(self):
-        for symbol in ["_keep", "tailor_and_gate", "--tailored-gate", "--min-fit"]:
+        for symbol in ["_keep", "tailor_and_gate", "_at_or_above_gate",
+                       "--tailored-gate", "--min-fit"]:
             with self.subTest(symbol=symbol):
                 self.assertIn(symbol, self.readme)
         self.assertTrue(hasattr(bq, "_keep"))
         self.assertTrue(hasattr(bq, "tailor_and_gate"))
+        self.assertTrue(hasattr(bq, "_at_or_above_gate"))
+
+    def test_readme_does_not_claim_the_standout_concession_applies_to_the_re_gate(self):
+        """The re-gate must not be described as reusing --standout-fit.
+
+        standout (0.78) is below the tailored gate (0.80), so a re-gate honouring it would
+        readmit stale 0.78-0.799 cards. Assert the ordering the prose relies on, so this
+        paragraph goes stale loudly if either threshold ever moves.
+        """
+        self.assertLess(self.defaults.standout_fit, self.defaults.tailored_gate)
+        self.assertFalse(bq._at_or_above_gate({"fit_score": self.defaults.standout_fit},
+                                              self.defaults.tailored_gate))
 
     def test_readme_autosubmit_variable_is_the_one_apply_py_reads(self):
         import apply as apply_mod

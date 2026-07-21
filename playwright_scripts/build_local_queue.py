@@ -29,8 +29,6 @@ import verify as verify_mod
 from lib.paths import JOBHUNT_ROOT
 
 APPLICATIONS_DIR = JOBHUNT_ROOT / "applications"
-PRE_FILTER_FLOOR = 0.55   # raw floor; strong-adjacent roles still get a tailoring attempt
-                          # (the honest gate on the TAILORED result below is the real bar)
 TAILORED_FIT_GATE = 0.80  # a card reaches the queue only if the AUDITOR scores the
                           # tailored resume at/above this. Enforced in tailor_and_gate().
 RETRY_LOW = 0.55          # tailored-fit band [RETRY_LOW, gate) eligible for one honest re-tailor
@@ -64,6 +62,15 @@ def _keep(card: dict, min_fit: float, standout: float, all_locations: bool) -> b
     if all_locations:
         return fit >= min_fit
     return (fit >= min_fit and _loc_ok(card)) or (fit >= standout)
+
+
+def _at_or_above_gate(card: dict, gate: float) -> bool:
+    """Does an already-tailored card still clear the queue bar?
+
+    Deliberately NOT _keep(): location and standout status were settled before the card was
+    tailored, and the standout threshold (0.78) sits below the gate (0.80), so routing this
+    through _keep would readmit a stale 0.78-0.799 card from any location."""
+    return float(card.get("fit_score") or 0) >= gate
 
 # Swipes in these states mean the user is done with the job -> drop it.
 # 'save'/'edit' (or no swipe) keep the card in the queue.
@@ -376,7 +383,9 @@ def tailor_and_gate(role: dict, gate: float = TAILORED_FIT_GATE):
     return tailored, f"clean (tailored fit {tailored_fit:.2f} >= gate {gate:.2f})"
 
 
-def main() -> int:
+def build_parser() -> argparse.ArgumentParser:
+    """The one and only CLI definition. Tests read the shipped defaults off this, so a
+    threshold cannot be changed here while a doc keeps quoting the old number."""
     ap = argparse.ArgumentParser()
     ap.add_argument("--jobs", required=True)
     ap.add_argument("--top", type=int, default=25,
@@ -398,7 +407,11 @@ def main() -> int:
                     help="Find hiring manager / team / referral contacts via LinkedIn "
                          "(launches Comet, quit Comet first, slow). Deep-link referrals are "
                          "always added regardless; this is the optional automated path.")
-    args = ap.parse_args()
+    return ap
+
+
+def main() -> int:
+    args = build_parser().parse_args()
 
     acted = load_acted_ids()
     existing = load_existing_cards()
@@ -471,9 +484,11 @@ def main() -> int:
     # Re-apply the queue bar to carried-over cards, so a card written by an older build
     # under a laxer gate cannot linger. Cards carry the AUDITED tailored fit, so the
     # threshold here is the tailored gate, not the pre-tailor floor. Location was already
-    # decided before tailoring, so it is not re-litigated.
+    # decided before tailoring, so it is not re-litigated (and NOT via _keep, whose
+    # standout escape hatch sits below the gate and would readmit exactly the stale cards
+    # this filter exists to evict).
     before = len(merged)
-    merged = [c for c in merged if _keep(c, args.tailored_gate, args.standout_fit, args.all_locations)]
+    merged = [c for c in merged if _at_or_above_gate(c, args.tailored_gate)]
     if before != len(merged):
         log(f"dropped {before - len(merged)} card(s) below the tailored gate")
     payload = {

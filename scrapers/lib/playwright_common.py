@@ -18,7 +18,7 @@ from lib.normalize import dump_json_array, normalize_job
 from lib.ratelimit import rate_limit
 
 
-JOBHUNT_ROOT = Path(os.environ.get("JOBHUNT_ROOT", str(Path.home() / "JobHunt")))
+JOBHUNT_ROOT = Path(os.environ.get("JOBHUNT_ROOT") or (Path.home() / "JobHunt"))
 COMET_EXECUTABLE_PATH = os.environ.get("COMET_BIN", "/Applications/Comet.app/Contents/MacOS/Comet")
 COMET_USER_DATA_DIR = str(JOBHUNT_ROOT / ".browser-profile" / "comet")
 SCRAPERS_DIR = JOBHUNT_ROOT / "scrapers"
