@@ -1,6 +1,6 @@
-# Codex brief — Tinder-style review web app
+# Codex brief: Tinder-style review web app
 
-Build `~/JobHunt/tinder_app/` — single-page review UI hosted by n8n.
+Build `~/JobHunt/tinder_app/`, single-page review UI hosted by n8n.
 
 ## URL + auth
 
@@ -28,7 +28,7 @@ Vanilla JS or lightweight (Alpine.js). No build step. Mobile-first.
 - **Top bar**: `JobHunt` logo · today count `2/5 applied` · posting-window badge (green if 11-14 IST, amber else) · settings cog.
 - **Card stack** (centre): topmost card is fully visible, next 2 peek underneath for depth. Swipeable on touch + keyboard arrows + button bar.
 - **Action buttons** (bottom): `← Skip` / `↓ Edit` / `↑ Save` / `→ Apply`. Big tap targets.
-- **Side panel** (right, slides in on click): role full detail — JD, tailored resume preview (diff vs master), CL preview, hiring mgr LinkedIn link.
+- **Side panel** (right, slides in on click): role full detail: JD, tailored resume preview (diff vs master), CL preview, hiring mgr LinkedIn link.
 
 ### Card content
 
@@ -59,12 +59,12 @@ When a portal form-fill paused for approval (Stage 4B step 4): app shows a banne
 
 ## Style
 
-Use design skill (`design:design-system`, `design:ux-copy`) to polish. Keep BFSI-professional but with the swipe-app feel — calm colours (slate, white, accent teal for primary actions, no red-green binary).
+Use design skill (`design:design-system`, `design:ux-copy`) to polish. Keep BFSI-professional but with the swipe-app feel, calm colours (slate, white, accent teal for primary actions, no red-green binary).
 
 ## Test plan
 
 - Render with 5 mock roles in `test_fixtures/queue.json`.
 - Manually swipe each direction, confirm `/api/swipe` called with right action.
-- Resize to mobile (390px) — all buttons reachable thumb-only.
+- Resize to mobile (390px): all buttons reachable thumb-only.
 - Push notification permission flow.
 - Auth bounce: hit `/review` while signed out → Google sign-in → back to app.

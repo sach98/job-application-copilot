@@ -1,0 +1,50 @@
+[
+  {
+    "external_id": "synth-001",
+    "company": "Northstar Mutual",
+    "title": "Senior Business Analyst, Claims Automation",
+    "location": "Gurgaon, HR, IN",
+    "jd_url": "https://example.com/jobs/synth-001",
+    "source": "synthetic_ats",
+    "posted_at": "2026-01-06T09:00:00+05:30",
+    "scraped_at": "2026-01-06T09:30:00+05:30",
+    "salary": "22-28 LPA",
+    "jd_text": "Synthetic posting for demo use. Own claims-workflow discovery with operations and underwriting, map current-state processes, write BRDs and user stories, build SQL-backed analysis of claim cycle times, and specify dashboards for leadership. Partner with engineering through UAT and implementation handoff. No real employer or candidate data is represented."
+  },
+  {
+    "external_id": "synth-002",
+    "company": "Meridian Data Trust",
+    "title": "Regulatory Reporting Analyst",
+    "location": "Remote, India",
+    "jd_url": "https://example.com/jobs/synth-002",
+    "source": "synthetic_ats",
+    "posted_at": "2026-01-06T10:15:00+05:30",
+    "scraped_at": "2026-01-06T10:40:00+05:30",
+    "salary": null,
+    "jd_text": "Synthetic posting for demo use. Produce periodic regulatory submissions, reconcile source systems against reported figures, document data lineage, and maintain the controls catalogue. SQL and advanced Excel required. No real employer or candidate data is represented."
+  },
+  {
+    "external_id": "synth-003",
+    "company": "Halcyon Product Labs",
+    "title": "Product Operations Associate",
+    "location": "Bangalore, KA, IN",
+    "jd_url": "https://example.com/jobs/synth-003",
+    "source": "synthetic_ats",
+    "posted_at": "2026-01-06T11:00:00+05:30",
+    "scraped_at": "2026-01-06T11:20:00+05:30",
+    "salary": "14-18 LPA",
+    "jd_text": "Synthetic posting for demo use. Coordinate release readiness across product squads, maintain the launch checklist, and keep support enablement current. No real employer or candidate data is represented."
+  },
+  {
+    "external_id": "synth-004",
+    "company": "Calder & Roe Consulting",
+    "title": "Business Analyst, Insurance Practice",
+    "location": "Noida, UP, IN",
+    "jd_url": "https://example.com/jobs/synth-004",
+    "source": "synthetic_ats",
+    "posted_at": "2026-01-06T12:00:00+05:30",
+    "scraped_at": "2026-01-06T12:25:00+05:30",
+    "salary": "18-24 LPA",
+    "jd_text": "Synthetic posting for demo use. Client-facing analysis for insurance transformation programmes: requirement workshops, process re-design, and benefits tracking. Please submit a cover letter with your application. No real employer or candidate data is represented."
+  }
+]

@@ -21,10 +21,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 from lib.sonnet import call_claude
 from lib.profile import load_profile
-
-HOME = Path.home()
-PROFILE_DIR = HOME / "JobHunt" / "profile"
-PROMPTS_DIR = HOME / "JobHunt" / "prompts"
+from lib.paths import PROFILE_DIR, PROMPTS_DIR
 SCORING_PROMPT = PROMPTS_DIR / "scoring.md"
 MASTER_RESUME = PROFILE_DIR / "master_resume.md"
 TIER_A = PROFILE_DIR / "tier_a_companies.md"
@@ -82,7 +79,7 @@ def _candidate() -> dict:
 
 
 def build_input(role: dict) -> dict:
-    # Fit inputs only — timing/salary/company-prestige are deliberately excluded so
+    # Fit inputs only: timing/salary/company-prestige are deliberately excluded so
     # fit_score measures true candidate↔role match, not luck. (Recency/salary are
     # used downstream as separate sort hints, not part of fit.)
     return {

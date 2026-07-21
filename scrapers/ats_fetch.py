@@ -2,7 +2,7 @@
 """Fetch fresh jobs straight from companies' public ATS job boards.
 
 This is the most reliable + fastest "as-posted" source: Greenhouse / Lever / Ashby
-expose public JSON boards that update the instant a recruiter posts — no scraping, no
+expose public JSON boards that update the instant a recruiter posts, no scraping, no
 ban, no rate limits. Curate the target company list in TARGETS (or pass --companies a
 JSON file). Output: normalized job dicts (same shape as jobspy_wrapper) to stdout.
 
@@ -21,7 +21,7 @@ import urllib.request
 import urllib.error
 from datetime import datetime, timezone
 
-# Curated target list — companies whose roles fit a senior BFSI/insurance/analytics BA
+# Curated target list: companies whose roles fit a senior BFSI/insurance/analytics BA
 # AND that use a public ATS (Greenhouse/Lever/Ashby). Workday/SuccessFactors/Taleo are
 # NOT here (no clean public JSON). Edit freely; `ats` ∈ {greenhouse, lever, ashby}.
 TARGETS: list[dict] = [

@@ -1,0 +1,68 @@
+{
+  "role_id": "synth-001",
+  "company": "Northstar Mutual",
+  "role": "Senior Business Analyst, Claims Automation",
+  "apply_url": "https://example.com/jobs/synth-001",
+  "fields": [
+    {
+      "q": "Years of experience",
+      "a": "6+ years (Senior Business Analyst)",
+      "source": "profile",
+      "needs_confirm": false
+    },
+    {
+      "q": "Authorized to work in India / require sponsorship?",
+      "a": "⚠ Not in profile, confirm before submitting (India-based roles typically need no sponsorship).",
+      "source": "(missing)",
+      "needs_confirm": true
+    },
+    {
+      "q": "Notice period",
+      "a": "Immediate to 2 weeks.",
+      "source": "answers.md #10",
+      "needs_confirm": false
+    },
+    {
+      "q": "Expected salary / CTC",
+      "a": "Targeting the posted budget for the role, quoted in LPA.",
+      "source": "answers.md #9",
+      "needs_confirm": false
+    },
+    {
+      "q": "Current location",
+      "a": "Example City, IN",
+      "source": "master_resume",
+      "needs_confirm": false
+    },
+    {
+      "q": "Open to relocation?",
+      "a": "Primary preference: Delhi NCR.",
+      "source": "answers.md #17",
+      "needs_confirm": false
+    },
+    {
+      "q": "Hybrid / remote / onsite preference",
+      "a": "Hybrid NCR preference.",
+      "source": "answers.md #18",
+      "needs_confirm": false
+    },
+    {
+      "q": "Why this company?",
+      "a": "[Northstar Mutual] Synthetic hook about the company's stated problem space.",
+      "source": "answers.md #11",
+      "needs_confirm": true
+    },
+    {
+      "q": "Phone",
+      "a": "+91 00000 00000",
+      "source": "master_resume",
+      "needs_confirm": false
+    },
+    {
+      "q": "Email",
+      "a": "candidate@example.com",
+      "source": "master_resume",
+      "needs_confirm": false
+    }
+  ]
+}

@@ -35,12 +35,19 @@ from pathlib import Path
 from playwright.sync_api import Page, TimeoutError as PWTimeout, sync_playwright
 
 # ----- Paths -----
-HOME = Path.home()
+sys.path.append(str(Path(__file__).parent))
+from lib.paths import (
+    BROWSER_PROFILE_DIR,
+    JOBHUNT_ROOT,
+    PROFILE_DIR as PROFILE_ROOT,
+    SCREENSHOTS_DIR,
+)
+
 COMET_BIN = "/Applications/Comet.app/Contents/MacOS/Comet"
-PROFILE_DIR = HOME / "JobHunt" / ".browser-profile" / "comet"
-DATA_FILE = HOME / "JobHunt" / "profile" / "candidate_profile_data.json"
-SCREENSHOT_DIR = HOME / "JobHunt" / "screenshots"
-LOG_DIR = HOME / "JobHunt" / "logs"
+PROFILE_DIR = BROWSER_PROFILE_DIR
+DATA_FILE = PROFILE_ROOT / "candidate_profile_data.json"
+SCREENSHOT_DIR = SCREENSHOTS_DIR
+LOG_DIR = JOBHUNT_ROOT / "logs"
 
 NAUKRI_PROFILE_URL = "https://www.naukri.com/mnjuser/profile"
 
@@ -240,7 +247,7 @@ def fill_key_skills(page: Page, data: dict) -> bool:
 
 def fill_employment(page: Page, data: dict) -> bool:
     log("section: employment history")
-    log("employment is multi-record. candidate adds each manually for safety — script will scroll to section + open editor.")
+    log("employment is multi-record. candidate adds each manually for safety, script will scroll to section + open editor.")
     try:
         section = page.locator("#lazyEmployment").first
         if section.count() == 0:
@@ -326,13 +333,13 @@ def fill_personal(page: Page, data: dict) -> bool:
     except PWTimeout:
         log("marital radio not found")
 
-    # Languages — multi-row UI. candidate handles manually for safety; we log values.
+    # Languages: multi-row UI. candidate handles manually for safety; we log values.
     log("languages to add manually:")
     for lang in p["languages"]:
         sk = "Speak" if lang["speak"] else ""
         rd = "Read" if lang["read"] else ""
         wt = "Write" if lang["write"] else ""
-        log(f"  {lang['name']} ({lang['proficiency']}) — {sk} {rd} {wt}".strip())
+        log(f"  {lang['name']} ({lang['proficiency']}), {sk} {rd} {wt}".strip())
 
     screenshot(page, "personal_before_save")
     pause_for_save(page)

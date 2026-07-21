@@ -1,19 +1,26 @@
+from __future__ import annotations
+
 import json
 import re
 import sys
 from pathlib import Path
-from typing import Any
-from playwright.sync_api import sync_playwright, Page, BrowserContext
+from typing import TYPE_CHECKING, Any
+
+# playwright is imported lazily in launch_browser() so this module's path constants and
+# helpers stay importable without the browser dependency installed.
+if TYPE_CHECKING:
+    from playwright.sync_api import BrowserContext, Page
 
 from lib.profile import load_profile
 from lib.screenshots import take_screenshot
 from lib.essay_lookup import lookup_essay_answer
 from lib.approval import wait_for_approval
 
+from lib.paths import APPLICATIONS_DIR, BROWSER_PROFILE_DIR, PROFILE_DIR as _PROFILE_ROOT
+
 COMET_BIN = "/Applications/Comet.app/Contents/MacOS/Comet"
-PROFILE_DIR = Path.home() / "JobHunt" / ".browser-profile" / "comet"
-MASTER_RESUME_PDF = Path.home() / "JobHunt" / "profile" / "master_resume.pdf"
-APPLICATIONS_DIR = Path.home() / "JobHunt" / "applications"
+PROFILE_DIR = BROWSER_PROFILE_DIR
+MASTER_RESUME_PDF = _PROFILE_ROOT / "master_resume.pdf"
 
 class FormFillBot:
     def __init__(self, jd_url: str, job_id: str, company: str, role: str, n8n_webhook: str = None, draft_only: bool = True):
@@ -38,6 +45,8 @@ class FormFillBot:
     def launch_browser(self) -> Page:
         self.log("launch comet browser")
         PROFILE_DIR.mkdir(parents=True, exist_ok=True)
+        from playwright.sync_api import sync_playwright
+
         self.playwright = sync_playwright().start()
         
         try:

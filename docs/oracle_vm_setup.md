@@ -1,4 +1,4 @@
-# Oracle Cloud Free ARM VM — setup runbook
+# Oracle Cloud Free ARM VM: setup runbook
 
 Stage 4 of build order. candidate runs this manually first time; subsequent re-provisioning automated via cloud-init.
 

@@ -1,13 +1,21 @@
 .env
 .browser-profile/
 .venv/
+venv/
 applications/
 screenshots/
 logs/
 profile/
 github-work/
+# Default JOBHUNT_ROOT suggested by the README quickstart.
+.jobhunt-data/
 *.log
 *.pid
 .DS_Store
 __pycache__/
 *.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.coverage

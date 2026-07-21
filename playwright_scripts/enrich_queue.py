@@ -2,7 +2,7 @@
 """Patch the existing local queue with LinkedIn contacts (hiring mgr, team, referrals).
 
 Unlike build_local_queue --enrich (which only enriches freshly tailored cards),
-this enriches every card already in local_queue.json — use it to backfill contacts
+this enriches every card already in local_queue.json, use it to backfill contacts
 on cards that are carried over. Launches Comet once for all companies, so Comet
 must be CLOSED and LinkedIn logged in.
 
@@ -19,8 +19,11 @@ import sys
 import tempfile
 from pathlib import Path
 
+sys.path.append(str(Path(__file__).parent))
+from lib.paths import APPLICATIONS_DIR
+
 HERE = Path(__file__).parent
-QUEUE = Path.home() / "JobHunt" / "applications" / "local_queue.json"
+QUEUE = APPLICATIONS_DIR / "local_queue.json"
 ENRICH = HERE / "enrich_linkedin.py"
 
 

@@ -23,13 +23,9 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent))
 from lib.sonnet import call_claude
+from lib.paths import APPLICATIONS_DIR, PROFILE_DIR, PROMPTS_DIR
 
-HOME = Path.home()
-PROFILE_DIR = HOME / "JobHunt" / "profile"
-PROMPTS_DIR = HOME / "JobHunt" / "prompts"
-APPLICATIONS_DIR = HOME / "JobHunt" / "applications"
-
-TAILOR_MODEL = "claude-opus-4-8"   # resume/CL writer — highest quality
+TAILOR_MODEL = "claude-opus-4-8"   # resume/CL writer, highest quality
 TAILOR_EFFORT = "high"
 
 MASTER_RESUME = PROFILE_DIR / "master_resume.md"
@@ -117,6 +113,12 @@ _CL_REQUEST_RE = re.compile(
 
 
 def jd_wants_cover_letter(jd: str) -> bool:
+    """Does the JD ask for a cover letter?
+
+    NOT consulted by run(): it hardcodes wants_cl = True on purpose, so a cover letter is
+    always ready to attach (see the comment there). Kept as a detector for callers that
+    want to know, and because the intent may return if cover-letter cost matters.
+    """
     return bool(_CL_REQUEST_RE.search(jd or ""))
 
 
@@ -139,7 +141,7 @@ def build_sonnet_input(role: dict, focus: list | None = None, remove_claims: lis
         "profile_answers": _read(ANSWERS),
         "tier_a_companies": _read(TIER_A),
         # Retry hint: JD requirements the first pass underplayed. Surface genuine
-        # matching experience for these — NEVER invent to cover a gap.
+        # matching experience for these: NEVER invent to cover a gap.
         "focus_gaps": focus or [],
         # Correctness-fix hint: an auditor flagged these exact claims as unsupported by
         # the master. Remove or rewrite each to what the master actually supports.
@@ -170,7 +172,7 @@ def write_artifacts(role: dict, tailored: dict, wants_cl: bool) -> dict:
     cl_url = ""
     if wants_cl:
         cover_letter = tailored.get("cover_letter") or ""
-        cl_md = "# Cover Letter — {role}, {company}\n\n{body}\n".format(
+        cl_md = "# Cover Letter, {role}, {company}\n\n{body}\n".format(
             role=role_title, company=company, body=cover_letter
         )
         cl_path = out_dir / "cover_letter.md"

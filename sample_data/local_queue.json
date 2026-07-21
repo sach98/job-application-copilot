@@ -1,0 +1,78 @@
+{
+  "roles": [
+    {
+      "id": "synth-001",
+      "company": "Northstar Mutual",
+      "role": "Senior Business Analyst, Claims Automation",
+      "salary": "22-28 LPA",
+      "fit_score": 0.88,
+      "source": "synthetic_ats",
+      "location": "Gurgaon, HR, IN",
+      "posted_at": "2026-01-06T09:00:00+05:30",
+      "jd_url": "https://example.com/jobs/synth-001",
+      "fit_summary_3_bullets": [
+        "Process mapping and BRD work matches the posting's core duties.",
+        "SQL and dashboard specification are on the verified master resume.",
+        "Domain terminology needs a human check before submitting."
+      ],
+      "hiring_mgr": {
+        "name": "",
+        "title": "",
+        "linkedin_url": ""
+      },
+      "jd_excerpt": "Synthetic posting for demo use. Own claims-workflow discovery with operations and underwriting, map current-state processes, write BRDs and user stories, build SQL-backed analysis of claim cycle times, and specify dashboards for leadership. Partner with engineering through UAT and implementation handoff. No real employer or candidate data is represented.",
+      "cl_preview": "Dear Hiring Team at Northstar Mutual, this synthetic draft demonstrates tone and structure for the Senior Business Analyst, Claims Automation role without using private candidate history.",
+      "cl_url": "$JOBHUNT_ROOT/applications/synth-001/cover_letter.pdf",
+      "tailored_resume_diff_preview": "• Mapped claims intake and settlement processes with operations stakeholders.\n• Wrote BRDs and user stories for workflow automation releases.\n• Built SQL analyses of cycle times and specified leadership dashboards.",
+      "resume_url": "$JOBHUNT_ROOT/applications/synth-001/resume.pdf",
+      "team_members": "[]",
+      "referrals": [],
+      "referral_available": false,
+      "status": "queued",
+      "apply_url": "https://example.com/jobs/synth-001",
+      "resume_pdf_url": "artifact/synth-001/resume.pdf",
+      "cover_letter_pdf_url": "artifact/synth-001/cover_letter.pdf",
+      "crib_url": "artifact/synth-001/crib.json",
+      "referral_search_url": "https://www.linkedin.com/search/results/people/?keywords=Northstar%20Mutual&network=%5B%22F%22%5D",
+      "hiring_search_url": "https://www.linkedin.com/search/results/people/?keywords=Northstar%20Mutual%20Senior%20Business%20Analyst%2C%20Claims%20Automation"
+    },
+    {
+      "id": "synth-002",
+      "company": "Meridian Data Trust",
+      "role": "Regulatory Reporting Analyst",
+      "salary": null,
+      "fit_score": 0.83,
+      "source": "synthetic_ats",
+      "location": "Remote, India",
+      "posted_at": "2026-01-06T10:15:00+05:30",
+      "jd_url": "https://example.com/jobs/synth-002",
+      "fit_summary_3_bullets": [
+        "Process mapping and BRD work matches the posting's core duties.",
+        "SQL and dashboard specification are on the verified master resume.",
+        "Domain terminology needs a human check before submitting."
+      ],
+      "hiring_mgr": {
+        "name": "",
+        "title": "",
+        "linkedin_url": ""
+      },
+      "jd_excerpt": "Synthetic posting for demo use. Produce periodic regulatory submissions, reconcile source systems against reported figures, document data lineage, and maintain the controls catalogue. SQL and advanced Excel required. No real employer or candidate data is represented.",
+      "cl_preview": "Dear Hiring Team at Meridian Data Trust, this synthetic draft demonstrates tone and structure for the Regulatory Reporting Analyst role without using private candidate history.",
+      "cl_url": "$JOBHUNT_ROOT/applications/synth-002/cover_letter.pdf",
+      "tailored_resume_diff_preview": "• Mapped claims intake and settlement processes with operations stakeholders.\n• Wrote BRDs and user stories for workflow automation releases.\n• Built SQL analyses of cycle times and specified leadership dashboards.",
+      "resume_url": "$JOBHUNT_ROOT/applications/synth-002/resume.pdf",
+      "team_members": "[]",
+      "referrals": [],
+      "referral_available": false,
+      "status": "queued",
+      "apply_url": "https://example.com/jobs/synth-002",
+      "resume_pdf_url": "artifact/synth-002/resume.pdf",
+      "cover_letter_pdf_url": "artifact/synth-002/cover_letter.pdf",
+      "crib_url": "artifact/synth-002/crib.json",
+      "referral_search_url": "https://www.linkedin.com/search/results/people/?keywords=Meridian%20Data%20Trust&network=%5B%22F%22%5D",
+      "hiring_search_url": "https://www.linkedin.com/search/results/people/?keywords=Meridian%20Data%20Trust%20Regulatory%20Reporting%20Analyst"
+    }
+  ],
+  "today_applied": 0,
+  "pending_review_count": 2
+}

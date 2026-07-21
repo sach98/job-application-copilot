@@ -124,7 +124,7 @@
     },
     {
       "parameters": {
-        "command": "$JOBHUNT_ROOT/.venv/bin/python $JOBHUNT_ROOT/playwright_scripts/apply.py --url \"{{$json.jd_url}}\" --job-id \"{{$json.role_id}}\" --company \"{{$json.company}}\" --role \"{{$json.role}}\" --webhook \"http://localhost:5678/webhook/jobhunt/api\" --submit"
+        "command": "$JOBHUNT_ROOT/.venv/bin/python $JOBHUNT_ROOT/playwright_scripts/apply.py --url \"{{$json.jd_url}}\" --job-id \"{{$json.role_id}}\" --company \"{{$json.company}}\" --role \"{{$json.role}}\" --webhook \"http://localhost:5678/webhook/jobhunt/api\""
       },
       "id": "cb1cde3d-0d67-4a0b-967a-28956e18f26a",
       "name": "Dispatch Playwright Bot",

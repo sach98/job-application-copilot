@@ -17,10 +17,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent))
 from lib.sonnet import call_claude
-
-HOME = Path.home()
-PROFILE_DIR = HOME / "JobHunt" / "profile"
-PROMPTS_DIR = HOME / "JobHunt" / "prompts"
+from lib.paths import PROFILE_DIR, PROMPTS_DIR
 VERIFY_PROMPT = PROMPTS_DIR / "verify_resume.md"
 MASTER_RESUME = PROFILE_DIR / "master_resume.md"
 VERIFY_MODEL = "claude-sonnet-4-6"

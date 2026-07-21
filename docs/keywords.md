@@ -77,4 +77,4 @@ remote | work from home | wfh | hybrid india
 8+ yr (lead/principal roles)
 ```
 
-Avoid: anything specifying "10+ yr only" if salary < ₹22 LPA (rare but happens — score down).
+Avoid: anything specifying "10+ yr only" if salary < ₹22 LPA (rare but happens, score down).

@@ -25,11 +25,11 @@ PARTS_DIR="$ROOT/applications/_scrape_parts"
 TOP="${1:-25}"
 MIN_FIT="${MIN_FIT:-0.80}"
 LOCATION="${LOCATION:-India}"   # scrape broad; build keeps NCR/remote OR ≥0.78 standout anywhere
-# Glassdoor dropped — jobspy's Glassdoor API errors on every call. LinkedIn+Indeed are public.
+# Glassdoor dropped: jobspy's Glassdoor API errors on every call. LinkedIn+Indeed are public.
 SITES="${SITES:-linkedin,indeed}"
 RESULTS="${RESULTS:-60}"
 # Niche-weighted keywords surface candidate's actual-fit roles (insurance/BFSI/regulatory BA),
-# not just generic analytics BA — generic terms score moderate against a narrow niche.
+# not just generic analytics BA: generic terms score moderate against a narrow niche.
 KEYWORDS="${KEYWORDS:-Insurance Business Analyst;BFSI Business Analyst;Regulatory Business Analyst;Senior Business Analyst;Business Analyst Consumer Duty;Business Analyst}"
 SINCE="$(date -u -v-72H +%Y-%m-%dT%H:%M:%SZ)"
 

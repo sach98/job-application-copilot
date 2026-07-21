@@ -3,7 +3,10 @@ import sys
 from pathlib import Path
 from openpyxl import Workbook
 
-OUTPUT_PATH = Path.home() / "JobHunt" / "profile" / "JobHunt_Tracker.xlsx"
+sys.path.append(str(Path(__file__).parent))
+from lib.paths import PROFILE_DIR
+
+OUTPUT_PATH = PROFILE_DIR / "JobHunt_Tracker.xlsx"
 
 def main() -> int:
     print(f"[*] Creating Excel sheet template at {OUTPUT_PATH}...", file=sys.stderr)

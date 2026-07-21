@@ -1,9 +1,17 @@
+from __future__ import annotations
+
 import sys
 from datetime import datetime
 from pathlib import Path
-from playwright.sync_api import Page
+from typing import TYPE_CHECKING
 
-SCREENSHOT_DIR = Path.home() / "JobHunt" / "screenshots"
+# `Page` is only a type annotation here, so playwright is not needed at import time.
+if TYPE_CHECKING:
+    from playwright.sync_api import Page
+
+from lib.paths import JOBHUNT_ROOT, SCREENSHOTS_DIR
+
+SCREENSHOT_DIR = SCREENSHOTS_DIR
 
 def take_screenshot(page: Page, company: str, role: str, label: str) -> Path:
     """Takes a screenshot and saves it to a designated subdirectory for the company/role."""
@@ -19,7 +27,7 @@ def take_screenshot(page: Page, company: str, role: str, label: str) -> Path:
     
     try:
         page.screenshot(path=str(filepath), full_page=False)
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] screenshot saved: {filepath.relative_to(Path.home())}", file=sys.stderr)
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] screenshot saved: {filepath.relative_to(JOBHUNT_ROOT)}", file=sys.stderr)
         return filepath
     except Exception as e:
         print(f"[{datetime.now().strftime('%H:%M:%S')}] screenshot fail {label}: {e}", file=sys.stderr)

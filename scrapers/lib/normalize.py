@@ -118,7 +118,8 @@ def extract_experience(text: str) -> str | None:
     if not text:
         return None
     patterns = [
-        r"\b\d{1,2}\s*(?:-|–|to)\s*\d{1,2}\s*\+?\s*(?:years?|yrs?|yr)\b",
+        # \u2013 is the en dash. JD text writes ranges as "5-10" and also with an en dash.
+        r"\b\d{1,2}\s*(?:-|\u2013|to)\s*\d{1,2}\s*\+?\s*(?:years?|yrs?|yr)\b",
         r"\b\d{1,2}\s*\+?\s*(?:years?|yrs?|yr)\b",
     ]
     for pattern in patterns:

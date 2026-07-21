@@ -5,18 +5,52 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import subprocess
 import time
 from pathlib import Path
 
-CLAUDE_BIN = "/opt/homebrew/bin/claude"
+# Fallbacks tried only when `claude` is not on PATH: Apple-Silicon Homebrew, Intel
+# Homebrew, npm global prefix, and the official per-user installer location.
+CLAUDE_BIN_FALLBACKS = (
+    "/opt/homebrew/bin/claude",
+    "/usr/local/bin/claude",
+    "/usr/bin/claude",
+    str(Path.home() / ".local" / "bin" / "claude"),
+    str(Path.home() / ".claude" / "local" / "claude"),
+)
 MODEL = "claude-sonnet-4-6"
 MAX_ATTEMPTS = 3
 AUTH_MARKERS = ("authenticate", "401", "invalid authentication", "oauth")
 
 
 class ClaudeAuthError(RuntimeError):
-    """Raised when the CLI fails auth (401). Retrying won't help — re-login needed."""
+    """Raised when the CLI fails auth (401). Retrying won't help. Re-login needed."""
+
+
+def resolve_claude_bin(env: dict | None = None) -> str:
+    """Locate the Claude CLI: CLAUDE_BIN override, then PATH, then known install dirs.
+
+    Raises FileNotFoundError with the places searched rather than failing later with a
+    confusing 'No such file or directory' from subprocess.
+    """
+    env = os.environ if env is None else env
+    override = env.get("CLAUDE_BIN")
+    if override:
+        return override
+
+    on_path = shutil.which("claude", path=env.get("PATH"))
+    if on_path:
+        return on_path
+
+    for candidate in CLAUDE_BIN_FALLBACKS:
+        if os.access(candidate, os.X_OK):
+            return candidate
+
+    raise FileNotFoundError(
+        "claude CLI not found. Install it, put it on PATH, or set CLAUDE_BIN. "
+        f"Searched PATH and: {', '.join(CLAUDE_BIN_FALLBACKS)}"
+    )
 
 
 def extract_json(text: str) -> dict:
@@ -60,7 +94,7 @@ def call_claude(prompt_path: Path, payload: dict, timeout: int = 600, model: str
     # Drop ANTHROPIC_API_KEY so the CLI falls back to OAuth (Claude Pro) creds.
     # The desktop session injects a key that headless -p rejects with 401.
     env = {k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}
-    cmd = [CLAUDE_BIN, "-p", prompt, "--model", model, "--output-format", "json"]
+    cmd = [resolve_claude_bin(), "-p", prompt, "--model", model, "--output-format", "json"]
     if effort:
         cmd += ["--effort", effort]
     stdin = json.dumps(payload)
@@ -81,7 +115,7 @@ def call_claude(prompt_path: Path, payload: dict, timeout: int = 600, model: str
         combined = f"{proc.stdout}\n{proc.stderr}".lower()
         if proc.returncode != 0:
             last_err = proc.stderr.strip()[:500] or proc.stdout.strip()[:500]
-            # Auth failures never recover via retry — surface immediately.
+            # Auth failures never recover via retry: surface immediately.
             if any(m in combined for m in AUTH_MARKERS):
                 raise ClaudeAuthError(f"claude CLI auth failed (401). Re-login: claude /login. {last_err}")
             if attempt < MAX_ATTEMPTS:

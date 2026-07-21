@@ -11,8 +11,11 @@ import sys
 from pathlib import Path
 
 # Module-level constants for default paths
-DEFAULT_ANSWERS_PATH = Path.home() / "JobHunt" / "profile" / "answers.md"
-DEFAULT_MASTER_RESUME_PATH = Path.home() / "JobHunt" / "profile" / "master_resume.md"
+sys.path.append(str(Path(__file__).parent))
+from lib.paths import PROFILE_DIR
+
+DEFAULT_ANSWERS_PATH = PROFILE_DIR / "answers.md"
+DEFAULT_MASTER_RESUME_PATH = PROFILE_DIR / "master_resume.md"
 
 def parse_answers(content: str) -> dict[int, str]:
     """Parse answers.md into a dictionary mapping heading number (int) to body text."""
@@ -120,7 +123,7 @@ def build_crib(role: dict, answers_md_path: Path, master_md_path: Path) -> dict:
     # 2. Authorized to work in India
     fields.append({
         "q": "Authorized to work in India / require sponsorship?",
-        "a": "⚠ Not in profile — confirm before submitting (India-based roles typically need no sponsorship).",
+        "a": "⚠ Not in profile, confirm before submitting (India-based roles typically need no sponsorship).",
         "source": "(missing)",
         "needs_confirm": True
     })

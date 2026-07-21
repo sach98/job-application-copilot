@@ -9,11 +9,11 @@
 | 09:15 | Filter + dedupe + enrich + score | n8n score.json |
 | 09:30 | Top-5 enter apply queue → Sonnet tailors → Tinder app cards ready | n8n tailor.json |
 | 09:31 | Gmail notification "5 new roles in queue" | n8n |
-| 10:00 | Follow-up cron — send InMail/email to applicable prior rows | n8n followup.json |
-| 12:30 | Scrape pass 2 (incremental — high-volume sources) | n8n discover.json |
+| 10:00 | Follow-up cron: send InMail/email to applicable prior rows | n8n followup.json |
+| 12:30 | Scrape pass 2 (incremental: high-volume sources) | n8n discover.json |
 | 12:45 | Score + tailor new arrivals; insert into Tinder app | n8n |
 | 12:46 | Gmail notification per new high-fit role | n8n |
-| 13:00-14:00 | **candidate's prime apply window** — review Tinder app, swipe | candidate |
+| 13:00-14:00 | **candidate's prime apply window**: review Tinder app, swipe | candidate |
 | 16:00 | Scrape pass 3 (incremental) | n8n discover.json |
 | 21:00 (Sunday only) | Naukri resume bump (Phase 2 D1) | n8n |
 | 23:55 | Daily cap reset + tomorrow's pool refresh | n8n |
@@ -40,7 +40,7 @@
 ## Weekly Sunday 18:00 review (candidate manual + Phase 2 E2)
 
 1. Read auto-generated `weekly_review` tab.
-2. Inspect any rows with `confidence < 0.7` on essay answers — add new Q&A pairs to `profile/answers.md`.
+2. Inspect any rows with `confidence < 0.7` on essay answers, add new Q&A pairs to `profile/answers.md`.
 3. Tune `daily_cap` based on response rate (raise if >15%, lower if <5% to focus quality).
 4. Adjust `tier_a_companies` list if new targets emerged.
 

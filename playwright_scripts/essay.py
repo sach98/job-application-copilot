@@ -4,7 +4,7 @@
 Input: --input-b64 <base64 of JSON> with at least {question}. Optional keys:
 company, role, jd / jd_url, job_id, max_chars. The script injects answers.md
 (profile_answers) and, when job_id resolves to a tailored cover letter, that CL
-for tone context — so Sonnet answers from real data instead of inventing.
+for tone context, so Sonnet answers from real data instead of inventing.
 
 Output (stdout, single JSON object): {answer, char_count, confidence,
 needs_human_review_reason} per prompts/essay.md.
@@ -21,11 +21,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent))
 from lib.sonnet import call_claude
-
-HOME = Path.home()
-PROFILE_DIR = HOME / "JobHunt" / "profile"
-PROMPTS_DIR = HOME / "JobHunt" / "prompts"
-APPLICATIONS_DIR = HOME / "JobHunt" / "applications"
+from lib.paths import APPLICATIONS_DIR, PROFILE_DIR, PROMPTS_DIR
 
 ANSWERS = PROFILE_DIR / "answers.md"
 ESSAY_PROMPT = PROMPTS_DIR / "essay.md"

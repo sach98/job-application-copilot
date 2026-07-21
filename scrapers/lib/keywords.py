@@ -7,8 +7,11 @@ from pathlib import Path
 from typing import Iterable, Pattern
 
 
+# JOBHUNT_KEYWORDS_PATH points at the file directly; otherwise fall back to the
+# JOBHUNT_ROOT convention used across the repo.
+_JOBHUNT_ROOT = Path(os.environ.get("JOBHUNT_ROOT") or (Path.home() / "JobHunt"))
 DEFAULT_KEYWORDS_PATH = Path(
-    os.environ.get("JOBHUNT_KEYWORDS_PATH", str(Path.home() / "JobHunt/docs/keywords.md"))
+    os.environ.get("JOBHUNT_KEYWORDS_PATH") or (_JOBHUNT_ROOT / "docs" / "keywords.md")
 )
 
 

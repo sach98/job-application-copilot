@@ -25,7 +25,7 @@ class TestCribGenerator(unittest.TestCase):
 ## 10. Notice period (literal weeks)
 Immediate to 2 weeks.
 
-## 11. Why this company? — template hooks
+## 11. Why this company?: template hooks
 Some company specific hooks.
 
 ## 17. Open to relocation? Y/N + caveats
@@ -125,12 +125,13 @@ class TestServeTinderArtifacts(unittest.TestCase):
         self.apps_dir = Path(self.tmp_dir) / "JobHunt" / "applications"
         self.apps_dir.mkdir(parents=True, exist_ok=True)
         
-        # Patch Path.home() so serve_artifact checks the temp dir path
-        self.path_home_patcher = patch("pathlib.Path.home", return_value=Path(self.tmp_dir))
-        self.path_home_patcher.start()
+        # serve_tinder resolves JOBHUNT_ROOT once at import time, so patching Path.home()
+        # here would have no effect. Patch the resolved constant the handler actually reads.
+        self.root_patcher = patch.object(serve_tinder, "JOBHUNT_ROOT", Path(self.tmp_dir) / "JobHunt")
+        self.root_patcher.start()
 
     def tearDown(self):
-        self.path_home_patcher.stop()
+        self.root_patcher.stop()
         shutil.rmtree(self.tmp_dir, ignore_errors=True)
 
     def test_serve_artifact_success_pdf(self):

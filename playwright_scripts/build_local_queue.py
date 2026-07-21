@@ -26,20 +26,22 @@ import score as score_mod
 import tailor as tailor_mod
 import make_crib
 import verify as verify_mod
+from lib.paths import JOBHUNT_ROOT
 
-APPLICATIONS_DIR = Path.home() / "JobHunt" / "applications"
+APPLICATIONS_DIR = JOBHUNT_ROOT / "applications"
 PRE_FILTER_FLOOR = 0.55   # raw floor; strong-adjacent roles still get a tailoring attempt
-                          # (the honest 0.80 gate on the TAILORED result is the real bar)
+                          # (the honest gate on the TAILORED result below is the real bar)
+TAILORED_FIT_GATE = 0.80  # a card reaches the queue only if the AUDITOR scores the
+                          # tailored resume at/above this. Enforced in tailor_and_gate().
 RETRY_LOW = 0.55          # tailored-fit band [RETRY_LOW, gate) eligible for one honest re-tailor
 
-HOME = Path.home()
-OUT = HOME / "JobHunt" / "applications" / "local_queue.json"
-SWIPE_STATE = HOME / "JobHunt" / "applications" / "_swipe_state.json"
-SCORE_CACHE = HOME / "JobHunt" / "applications" / "_score_cache.json"
-SEEN_FILE = HOME / "JobHunt" / "applications" / "_seen_jobs.json"  # postings already processed (poll dedup)
+OUT = APPLICATIONS_DIR / "local_queue.json"
+SWIPE_STATE = APPLICATIONS_DIR / "_swipe_state.json"
+SCORE_CACHE = APPLICATIONS_DIR / "_score_cache.json"
+SEEN_FILE = APPLICATIONS_DIR / "_seen_jobs.json"  # postings already processed (poll dedup)
 
 # Delhi NCR + remote gate. Matches NCR city names AND the "DL" state code jobspy returns,
-# plus remote/WFH/hybrid. (Bare "HR, IN"/"UP, IN" without a city are NOT matched — too broad;
+# plus remote/WFH/hybrid. (Bare "HR, IN"/"UP, IN" without a city are NOT matched: too broad;
 # real Gurgaon/Noida postings carry the city name.) Use --all-locations to bypass.
 import re as _re
 NCR_RE = _re.compile(
@@ -93,7 +95,7 @@ def normalize(job: dict) -> dict:
 
 def _li_people_search(keywords: str, first_degree: bool = False) -> str:
     """Build a LinkedIn people-search deep-link. The user clicks it in their own
-    browser session — zero automation against the account, so zero ban risk."""
+    browser session, zero automation against the account, so zero ban risk."""
     from urllib.parse import quote
     url = f"https://www.linkedin.com/search/results/people/?keywords={quote(keywords)}"
     if first_degree:
@@ -124,7 +126,7 @@ def to_card(tailored: dict, contacts: dict | None = None) -> dict:
     }
 
     role_id = tailored.get("id")
-    apps_dir = Path.home() / "JobHunt" / "applications"
+    apps_dir = APPLICATIONS_DIR
 
     def get_artifact_url(filename: str) -> str:
         if role_id:
@@ -307,14 +309,21 @@ def _read_tailored_resume(role_id) -> str:
     return p.read_text(encoding="utf-8") if p.exists() else ""
 
 
-def tailor_and_gate(role: dict):
-    """Tailor → correctness audit (grader ≠ author) → one strip-retry on fabrication.
+def tailor_and_gate(role: dict, gate: float = TAILORED_FIT_GATE):
+    """Tailor → correctness audit (grader ≠ author) → fit gate on the TAILORED result.
 
-    Fit is gated UPSTREAM on the raw holistic score; this pass exists only to guarantee
-    the tailored resume is fabrication-free. Returns (tailored_dict, verdict) with
-    fit_score = the role's raw fit, or (None, reason) if a fabrication can't be removed.
+    Two independent bars, both enforced here:
+      1. Correctness: the auditor must find no claim unsupported by the master resume.
+         Flagged claims go back to the tailorer to strip (up to 2 passes), else drop.
+      2. Fit: the auditor's OWN fit_score for the tailored resume must reach `gate`.
+         A near-miss in [RETRY_LOW, gate) earns one honest re-tailor aimed at the
+         auditor's `missing_for_fit`; still short means drop. The score is never
+         inflated or substituted to clear the bar.
+
+    The upstream raw Haiku score only decides which roles are worth tailoring at all.
+    Returns (tailored_dict, verdict) with fit_score = the AUDITED tailored fit, or
+    (None, reason) when the role is dropped.
     """
-    raw_fit = float(role.get("fit_score") or 0)
     try:
         tailored = tailor_mod.run(role)
     except Exception as exc:
@@ -328,7 +337,7 @@ def tailor_and_gate(role: dict):
         return None, "verify_error"
 
     # Correctness-fix loop: hand flagged claims back to the tailorer to strip, re-audit.
-    # Up to 2 strip passes — a strong-fit job is worth extra tries to land a CLEAN resume.
+    # Up to 2 strip passes: a strong-fit job is worth extra tries to land a CLEAN resume.
     strip = 0
     while not v["clean"] and strip < 2:
         strip += 1
@@ -343,8 +352,28 @@ def tailor_and_gate(role: dict):
         log(f"DROP {role.get('company')}: fabrication persists after {strip} fixes {v['fabrications'][:2]}")
         return None, "fabrication"
 
-    tailored["fit_score"] = raw_fit
-    return tailored, f"clean (raw fit {raw_fit:.2f})"
+    # Fit gate on the TAILORED resume, scored by the auditor rather than by its author.
+    tailored_fit = float(v.get("fit_score") or 0.0)
+    if RETRY_LOW <= tailored_fit < gate:
+        log(f"re-tailor {role.get('company')}: tailored fit {tailored_fit:.2f} < gate "
+            f"{gate:.2f}; one honest pass on {v['missing_for_fit'][:3]}")
+        try:
+            retried = tailor_mod.run(role, focus=v["missing_for_fit"])
+            rv = verify_mod.run(role, _read_tailored_resume(retried.get("id")))
+        except Exception as exc:
+            log(f"re-tailor failed {role.get('company')}: {exc}")
+            return None, "retailor_error"
+        # Only adopt the retry if it is still fabrication-free AND genuinely scores better.
+        if rv["clean"] and float(rv.get("fit_score") or 0.0) > tailored_fit:
+            tailored, v = retried, rv
+            tailored_fit = float(rv.get("fit_score") or 0.0)
+
+    if tailored_fit < gate:
+        log(f"DROP {role.get('company')}: tailored fit {tailored_fit:.2f} < gate {gate:.2f}")
+        return None, "below_gate"
+
+    tailored["fit_score"] = tailored_fit
+    return tailored, f"clean (tailored fit {tailored_fit:.2f} >= gate {gate:.2f})"
 
 
 def main() -> int:
@@ -353,8 +382,11 @@ def main() -> int:
     ap.add_argument("--top", type=int, default=25,
                     help="Max jobs to run through the tailor→gate gauntlet (cost bound).")
     ap.add_argument("--min-fit", type=float, default=0.60,
-                    help="Raw holistic fit gate (0-1): queue jobs at/above this. The resume is "
-                         "then tailored + audited fabrication-free. Default 0.60.")
+                    help="Raw pre-tailor fit floor (0-1): only jobs at/above this are worth "
+                         "spending a tailor pass on. Not the queue bar. Default 0.60.")
+    ap.add_argument("--tailored-gate", type=float, default=TAILORED_FIT_GATE,
+                    help="The queue bar (0-1): the auditor's fit_score for the TAILORED resume "
+                         f"must reach this or the role is dropped. Default {TAILORED_FIT_GATE:.2f}.")
     ap.add_argument("--all-locations", action="store_true",
                     help="Bypass the location policy (queue any location at --min-fit).")
     ap.add_argument("--standout-fit", type=float, default=0.78,
@@ -364,7 +396,7 @@ def main() -> int:
                          "(only NEW jobs are scored/tailored) + record this run's jobs as seen.")
     ap.add_argument("--enrich", action="store_true",
                     help="Find hiring manager / team / referral contacts via LinkedIn "
-                         "(launches Comet — quit Comet first, slow). Deep-link referrals are "
+                         "(launches Comet, quit Comet first, slow). Deep-link referrals are "
                          "always added regardless; this is the optional automated path.")
     args = ap.parse_args()
 
@@ -377,7 +409,7 @@ def main() -> int:
     jobs = [normalize(j) for j in json.loads(Path(args.jobs).read_text(encoding="utf-8"))]
     log(f"{len(jobs)} jobs loaded")
 
-    # NOTE: no pre-score location filter — we score all so an out-of-NCR STANDOUT can
+    # NOTE: no pre-score location filter: we score all so an out-of-NCR STANDOUT can
     # still surface. The NCR/remote-or-standout decision is applied at the keep gate below.
     seen = load_seen() if args.poll else set()
     if args.poll:
@@ -408,8 +440,9 @@ def main() -> int:
         log(f"score cache: {hits}/{len(jobs)} reused")
     _atomic_write(SCORE_CACHE, json.dumps(cache, ensure_ascii=False, indent=2))
 
-    # Fit gate on the RAW holistic score (#6): apply only to genuinely-fitting roles.
-    # Tailoring then makes the strongest HONEST resume; the audit guarantees no fabrication.
+    # Pre-filter on the RAW holistic score: decides which roles are worth a tailor pass.
+    # It is NOT the queue bar. Whether a card reaches the queue is decided later by
+    # tailor_and_gate(), on the auditor's score for the finished tailored resume.
     qualified = [r for r in scored if _keep(r, args.min_fit, args.standout_fit, args.all_locations)]
     qualified.sort(key=lambda r: (-float(r.get("fit_score") or 0), str(r.get("id") or "")))
     top = qualified[: args.top]
@@ -424,7 +457,7 @@ def main() -> int:
 
     cards = []
     for r in fresh_top:
-        tailored, verdict = tailor_and_gate(r)
+        tailored, verdict = tailor_and_gate(r, args.tailored_gate)
         if tailored is None:
             continue  # dropped: a fabrication couldn't be removed
         log(f"KEEP {r.get('company')} ({verdict})")
@@ -435,11 +468,14 @@ def main() -> int:
         cards.append(to_card(tailored, contacts_by_id.get(str(r.get("id")))))
 
     merged = merge_cards(carried, cards, acted)
-    # Apply the same quality gate to carried-over cards (drops stale sub-threshold ones).
+    # Re-apply the queue bar to carried-over cards, so a card written by an older build
+    # under a laxer gate cannot linger. Cards carry the AUDITED tailored fit, so the
+    # threshold here is the tailored gate, not the pre-tailor floor. Location was already
+    # decided before tailoring, so it is not re-litigated.
     before = len(merged)
-    merged = [c for c in merged if _keep(c, args.min_fit, args.standout_fit, args.all_locations)]
+    merged = [c for c in merged if _keep(c, args.tailored_gate, args.standout_fit, args.all_locations)]
     if before != len(merged):
-        log(f"dropped {before - len(merged)} card(s) failing fit/location policy")
+        log(f"dropped {before - len(merged)} card(s) below the tailored gate")
     payload = {
         "roles": merged,
         "today_applied": today_applied_count(),

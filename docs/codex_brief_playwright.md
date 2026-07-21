@@ -1,8 +1,8 @@
-# Codex brief — Playwright form-fill library
+# Codex brief: Playwright form-fill library
 
-Build `~/JobHunt/playwright_scripts/` — per-portal form-fill bots, run by Antigravity, invoked by n8n `apply.json`.
+Build `~/JobHunt/playwright_scripts/`, per-portal form-fill bots, run by Antigravity, invoked by n8n `apply.json`.
 
-## Browser — Comet (default everywhere)
+## Browser: Comet (default everywhere)
 
 All Playwright scripts must launch **Comet** (Perplexity's Chromium-based AI browser at `/Applications/Comet.app/Contents/MacOS/Comet`), not stock Chromium. Reasons: candidate's logged-in cookies, password manager, LinkedIn session, and Naukri session all live in Comet. Reusing the same browser = no separate auth headaches + Comet's AI features can assist form-fill where useful.
 
@@ -22,11 +22,11 @@ A dedicated profile (`~/JobHunt/.browser-profile/comet/`) keeps job-hunt cookies
 
 ## Shared scaffolding (`playwright_scripts/lib/`)
 
-- `base.ts` — abstract `FormFillBot` class. Methods: `login()`, `navigate(jd_url)`, `clickApply()`, `uploadResume(path)`, `fillStandardFields(profile)`, `fillEssay(question, draftedAnswer)`, `pauseForApproval(stage)`, `submit()`, `screenshot(label)`.
-- `profile.ts` — loads candidate's standard fields (name, email, phone, location, exp years, current company, current ctc, expected ctc, notice period, etc.) from `~/JobHunt/profile/answers.md`.
-- `essay_lookup.ts` — given portal question text + JD context, queries n8n webhook → returns cached or freshly-drafted answer.
-- `approval.ts` — pause → notify n8n via webhook → wait for resume signal (long-poll up to 6 hours).
-- `screenshots.ts` — auto-screenshot every step, upload to Drive `/JobHunt/<Company>_<Role>/screenshots/`.
+- `base.ts`: abstract `FormFillBot` class. Methods: `login()`, `navigate(jd_url)`, `clickApply()`, `uploadResume(path)`, `fillStandardFields(profile)`, `fillEssay(question, draftedAnswer)`, `pauseForApproval(stage)`, `submit()`, `screenshot(label)`.
+- `profile.ts`: loads candidate's standard fields (name, email, phone, location, exp years, current company, current ctc, expected ctc, notice period, etc.) from `~/JobHunt/profile/answers.md`.
+- `essay_lookup.ts`: given portal question text + JD context, queries n8n webhook → returns cached or freshly-drafted answer.
+- `approval.ts`: pause → notify n8n via webhook → wait for resume signal (long-poll up to 6 hours).
+- `screenshots.ts`: auto-screenshot every step, upload to Drive `/JobHunt/<Company>_<Role>/screenshots/`.
 
 ## Per-portal scripts (each extends `FormFillBot`)
 
@@ -60,11 +60,11 @@ URL pattern `*.greenhouse.io`. Single long form. Drag-drop or file-picker resume
 
 ### `icims.ts`
 
-`*.icims.com`. Legacy. Tab-based UI. Pre-fill from LinkedIn often offered — use it.
+`*.icims.com`. Legacy. Tab-based UI. Pre-fill from LinkedIn often offered, use it.
 
 ### `linkedin_easy_apply.ts`
 
-In-LinkedIn. Use candidate's logged-in session. Single-modal flow. ⚠️ Risky for ToS — only run with candidate's explicit toggle.
+In-LinkedIn. Use candidate's logged-in session. Single-modal flow. ⚠️ Risky for ToS, only run with candidate's explicit toggle.
 
 ### `naukri_1click.ts`
 

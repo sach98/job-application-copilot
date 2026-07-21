@@ -1,7 +1,14 @@
+from __future__ import annotations
+
 import subprocess
 import sys
 import time
-from playwright.sync_api import Page
+from typing import TYPE_CHECKING
+
+# `Page` is only a type annotation here, so importing playwright at runtime would force
+# the dependency on callers that just want the selector list or the module's constants.
+if TYPE_CHECKING:
+    from playwright.sync_api import Page
 
 CAPTCHA_SELECTORS = [
     "iframe[src*='recaptcha']",

@@ -7,9 +7,9 @@
 #   */20 * * * * ${JOBHUNT_ROOT:-$HOME/JobHunt}/poll_jobs.sh >> ${JOBHUNT_ROOT:-$HOME/JobHunt}/logs/poll.log 2>&1
 #
 # Sources (fastest first):
-#   1. Company ATS (Greenhouse/Lever/Ashby public JSON) — instant, no ban, niche.
-#   2. Indeed  — fresh window (last HOURS h), works, no ban.
-#   3. LinkedIn guest — fresh window, low results (rate-limit-careful, no account).
+#   1. Company ATS (Greenhouse/Lever/Ashby public JSON): instant, no ban, niche.
+#   2. Indeed: fresh window (last HOURS h), works, no ban.
+#   3. LinkedIn guest: fresh window, low results (rate-limit-careful, no account).
 
 set -uo pipefail
 
@@ -28,7 +28,7 @@ rm -f "$PARTS"/*.json(N) 2>/dev/null
 
 echo "[poll] $(date -u +%FT%TZ) freshness=${HOURS}h" >&2
 
-# 1. ATS — instant-fresh, India-only.
+# 1. ATS: instant-fresh, India-only.
 "$PY" "$ROOT/scrapers/ats_fetch.py" --india-only > "$PARTS/ats.json" 2>>"$ROOT/logs/poll.log" \
   || echo "[poll] ats fetch errored (continuing)" >&2
 

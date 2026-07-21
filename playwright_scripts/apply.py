@@ -1,8 +1,23 @@
 #!/usr/bin/env python3
+import os
 import sys
 import argparse
 import subprocess
 from pathlib import Path
+
+# Nothing auto-submits. --submit alone only expresses intent; the run is downgraded to
+# a dry-run unless a human has also exported AUTOSUBMIT_ENV_VAR=1 in that shell. Automated
+# callers (n8n, cron) never set it, so an unattended path cannot click a real submit button.
+AUTOSUBMIT_ENV_VAR = "JOBHUNT_ALLOW_AUTOSUBMIT"
+
+
+def submit_allowed(requested: bool, env: dict | None = None) -> bool:
+    """True only when --submit was passed AND a human opted in via the env var."""
+    if not requested:
+        return False
+    env = os.environ if env is None else env
+    return env.get(AUTOSUBMIT_ENV_VAR, "") == "1"
+
 
 def main():
     parser = argparse.ArgumentParser(description="Autopilot Playwright Applier Dispatcher")
@@ -11,8 +26,16 @@ def main():
     parser.add_argument("--company", required=True, help="Company Name")
     parser.add_argument("--role", required=True, help="Role Name")
     parser.add_argument("--webhook", required=True, help="n8n Webhook Base URL")
-    parser.add_argument("--submit", action="store_true", help="Submit application instead of dry-run")
+    parser.add_argument("--submit", action="store_true",
+                        help=f"Request a real submit. Honoured only when {AUTOSUBMIT_ENV_VAR}=1 "
+                             "is exported by a human; otherwise the run stays a dry-run.")
     args = parser.parse_args()
+
+    do_submit = submit_allowed(args.submit)
+    if args.submit and not do_submit:
+        print(f"[*] --submit ignored: {AUTOSUBMIT_ENV_VAR} is not set to 1. Running dry-run "
+              f"(draft only). Export {AUTOSUBMIT_ENV_VAR}=1 by hand to allow a real submit.",
+              file=sys.stderr)
     
     url = args.url.lower()
     script_dir = Path(__file__).parent
@@ -52,7 +75,7 @@ def main():
         "--role", args.role,
         "--webhook", args.webhook
     ]
-    if args.submit:
+    if do_submit:
         cmd.append("--submit")
         
     res = subprocess.run(cmd)

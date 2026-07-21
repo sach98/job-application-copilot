@@ -10,9 +10,10 @@ from playwright.sync_api import sync_playwright
 # Add parent/sibling dir to path so we can import lib
 sys.path.append(str(Path(__file__).parent))
 from lib.captcha import check_and_solve_captcha
+from lib.paths import BROWSER_PROFILE_DIR
 
 COMET_BIN = "/Applications/Comet.app/Contents/MacOS/Comet"
-PROFILE_DIR = Path.home() / "JobHunt" / ".browser-profile" / "comet"
+PROFILE_DIR = BROWSER_PROFILE_DIR
 
 def main() -> int:
     PROFILE_DIR.mkdir(parents=True, exist_ok=True)

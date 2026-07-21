@@ -10,9 +10,12 @@ import sys
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
+sys.path.append(str(Path(__file__).parent))
+from lib.paths import BROWSER_PROFILE_DIR, PROFILE_DIR as PROFILE_ROOT
+
 COMET_BIN = "/Applications/Comet.app/Contents/MacOS/Comet"
-PROFILE_DIR = Path.home() / "JobHunt" / ".browser-profile" / "comet"
-OUTPUT_FILE = Path.home() / "JobHunt" / "profile" / "linkedin_session_cookie.txt"
+PROFILE_DIR = BROWSER_PROFILE_DIR
+OUTPUT_FILE = PROFILE_ROOT / "linkedin_session_cookie.txt"
 
 def main() -> int:
     PROFILE_DIR.mkdir(parents=True, exist_ok=True)

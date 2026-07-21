@@ -1,5 +1,5 @@
 /*
- * JobHunt Tinder review app — vanilla JS.
+ * JobHunt Tinder review app: vanilla JS.
  *
  * Behaviour:
  * - Loads today's queue from `${API_BASE}/queue` (n8n webhook).
@@ -35,7 +35,7 @@
   };
 
   // Roles dismissed via skip/save/edit are hidden from the stack for this
-  // session only. They are NOT removed from the queue — they reappear on the
+  // session only. They are NOT removed from the queue: they reappear on the
   // next load. Only an 'apply' permanently removes a role from the queue.
   const dismissedThisSession = new Set();
 
@@ -166,7 +166,7 @@
         </div>
       </div>
       <div class="meta-row">
-        <span class="chip salary">${escape(role.salary || '—')}</span>
+        <span class="chip salary">${escape(role.salary || '-')}</span>
         <span class="chip ${fitC}">fit ${fitPct}%</span>
         <span class="chip source">${escape(role.source || '')}</span>
         ${role.tier_a ? '<span class="chip tier-a">tier A</span>' : ''}
@@ -181,7 +181,7 @@
         ${role.hiring_mgr && role.hiring_mgr.name
           ? `<div class="hm-text"><strong>${escape(role.hiring_mgr.name)}</strong> · ${escape(role.hiring_mgr.title || '')}</div>
              ${role.hiring_mgr.linkedin_url ? `<a href="${escape(normalizeLinkedinUrl(role.hiring_mgr.linkedin_url))}" target="_blank" rel="noopener">LinkedIn ↗</a>` : ''}`
-          : `<div class="hm-text"><span style="opacity:0.6">No named contact — next best:</span></div>
+          : `<div class="hm-text"><span style="opacity:0.6">No named contact, next best:</span></div>
              <div class="hm-links">
                ${role.referral_search_url ? `<a href="${escape(role.referral_search_url)}" target="_blank" rel="noopener">Referrals ↗</a>` : ''}
                ${role.hiring_search_url ? `<a href="${escape(role.hiring_search_url)}" target="_blank" rel="noopener">Hiring mgr ↗</a>` : ''}
@@ -236,7 +236,7 @@
     if (!url || url === '#') return '#';
     url = String(url).trim();
     if (url.startsWith('/')) return 'https://www.linkedin.com' + url;
-    // Only allow http(s) — blocks javascript:/data: URLs from scraped data.
+    // Only allow http(s): blocks javascript:/data: URLs from scraped data.
     return /^https?:\/\//i.test(url) ? url : '#';
   }
 
@@ -331,7 +331,7 @@
     const tag = badge ? ` <span class="chip referral">${escape(badge)}</span>` : '';
     const reachBtn = url ? ` · <button class="reach-btn" data-url="${escape(url)}" data-name="${escape(p.name || '')}" data-company="${escape(company || '')}" data-role="${escape(roleTitle || '')}">Reach out</button>` : '';
     const sub = [p.title, p.location].filter(Boolean).map(escape).join(' · ');
-    return `<div class="contact-row"><strong>${escape(p.name || '—')}</strong>${tag}${link}${reachBtn}${sub ? `<br/><span style="opacity:0.7">${sub}</span>` : ''}</div>`;
+    return `<div class="contact-row"><strong>${escape(p.name || '-')}</strong>${tag}${link}${reachBtn}${sub ? `<br/><span style="opacity:0.7">${sub}</span>` : ''}</div>`;
   }
   function renderContacts(role) {
     let team = [];
@@ -383,7 +383,7 @@
         try {
           if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(draft)
-              .then(() => showToast('Draft copied — paste into LinkedIn'))
+              .then(() => showToast('Draft copied, paste into LinkedIn'))
               .catch(err => console.error('Clipboard copy rejected:', err));
           }
         } catch (err) { console.error('Clipboard write error:', err); }
@@ -444,7 +444,7 @@
     setOpenLink('apOpenApp', role.apply_url || '');
     setOpenLink('apResume', (API_BASE && role.resume_pdf_url) ? `${API_BASE}/${role.resume_pdf_url}` : '');
     setOpenLink('apCl', (API_BASE && role.cover_letter_pdf_url) ? `${API_BASE}/${role.cover_letter_pdf_url}` : '');
-    // Deep-link referral search — opens in the user's own LinkedIn session (no automation, no ban).
+    // Deep-link referral search: opens in the user's own LinkedIn session (no automation, no ban).
     setOpenLink('apRefSearch', role.referral_search_url || '');
     setOpenLink('apHmSearch', role.hiring_search_url || '');
 
@@ -662,7 +662,7 @@
     });
     $('themeToggle').addEventListener('change', e => applyThemeChoice(e.target.checked));
     pendingBanner.addEventListener('click', () => {
-      // The deck IS the pending-review list — scroll it into view and nudge the top card.
+      // The deck IS the pending-review list: scroll it into view and nudge the top card.
       stackEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
       const topCard = stackEl.querySelector('.card[data-depth="0"]');
       if (topCard) {
@@ -674,7 +674,7 @@
       window.location.href = `${API_BASE}/auth/google`;
     });
 
-    // swipe gesture — bound once, not per card
+    // swipe gesture: bound once, not per card
     window.addEventListener('mousemove', moveSwipe);
     window.addEventListener('mouseup', endSwipe);
     window.addEventListener('touchmove', moveSwipe, { passive: true });

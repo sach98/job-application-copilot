@@ -109,7 +109,8 @@ def run_google_jobs(args: argparse.Namespace) -> tuple[list[dict], bool]:
     token = os.environ.get("APIFY_TOKEN")
     if not token:
         from pathlib import Path
-        env_path = Path.home() / "JobHunt" / ".env"
+        # Same JOBHUNT_ROOT convention as lib/playwright_common.py.
+        env_path = Path(os.environ.get("JOBHUNT_ROOT") or (Path.home() / "JobHunt")) / ".env"
         if env_path.exists():
             for line in env_path.read_text().splitlines():
                 if "=" in line and not line.strip().startswith("#"):

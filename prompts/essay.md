@@ -1,4 +1,4 @@
-# Essay prompt — Claude Sonnet 4.6
+# Essay prompt: Claude Sonnet 4.6
 
 candidate's job-application essay writer. Used when portal asks a free-text question NOT in the pre-cached 20-answer set.
 

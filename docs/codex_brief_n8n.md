@@ -1,4 +1,4 @@
-# Codex brief — build n8n workflows
+# Codex brief: build n8n workflows
 
 When Oracle VM ready + n8n running, delegate this brief to Codex.
 
@@ -82,8 +82,8 @@ For each:
 ### 6. `digest.json`
 
 Two crons:
-- 08:55 IST daily — morning brief (Phase 2 E1).
-- 18:00 Sunday — weekly review (Phase 2 E2).
+- 08:55 IST daily: morning brief (Phase 2 E1).
+- 18:00 Sunday: weekly review (Phase 2 E2).
 
 Gmail node sends to candidate@example.com.
 

@@ -5,18 +5,20 @@ import json
 import re
 import urllib.parse
 from pathlib import Path
-from playwright.sync_api import sync_playwright
+# playwright is imported lazily inside main() so the pure-logic helpers in this module
+# (company matching, referral ranking) stay importable, and unit-testable, without it.
 
 # Add script directory to sys.path to import lib
 sys.path.append(str(Path(__file__).parent))
 from lib.captcha import check_and_solve_captcha
+from lib.paths import BROWSER_PROFILE_DIR
 
 class BlockedError(RuntimeError):
     pass
 
 
 COMET_BIN = "/Applications/Comet.app/Contents/MacOS/Comet"
-PROFILE_DIR = Path.home() / "JobHunt" / ".browser-profile" / "comet"
+PROFILE_DIR = BROWSER_PROFILE_DIR
 
 def log(msg: str) -> None:
     print(f"[*] [Enrich] {msg}", file=sys.stderr, flush=True)
@@ -334,6 +336,8 @@ def main():
 
     if not args.batch and not args.company:
         parser.error("provide either --company or --batch")
+
+    from playwright.sync_api import sync_playwright
 
     with sync_playwright() as p:
         try:

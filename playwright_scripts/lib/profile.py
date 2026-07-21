@@ -1,8 +1,9 @@
 import json
-from pathlib import Path
 
-PROFILE_PATH = Path.home() / "JobHunt" / "profile" / "candidate_profile_data.json"
-ANSWERS_PATH = Path.home() / "JobHunt" / "profile" / "answers.md"
+from lib.paths import PROFILE_DIR
+
+PROFILE_PATH = PROFILE_DIR / "candidate_profile_data.json"
+ANSWERS_PATH = PROFILE_DIR / "answers.md"
 
 def load_profile() -> dict:
     """Loads the parsed profile JSON."""

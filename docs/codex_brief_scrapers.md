@@ -1,9 +1,9 @@
-# Codex brief — build scrapers
+# Codex brief: build scrapers
 
 Build all scrapers in `~/JobHunt/scrapers/`. Each must:
 
 1. Read keyword config from `~/JobHunt/docs/keywords.md` (parse Tier-1 + Tier-2 sections + location filter).
-2. Run with `--since <ISO>` flag — only return postings newer than that.
+2. Run with `--since <ISO>` flag, only return postings newer than that.
 3. Output JSON array to stdout in normalised schema:
    ```json
    [{
@@ -52,7 +52,7 @@ Headless. Login optional. Crawl `wellfound.com/jobs?role=business-analyst&locati
 
 ### `instahyre.ts` (Playwright)
 
-Login required (uses stored cookie). Crawl matching the keyword set. Their API rate-limits at ~30 reqs/min — Codex must implement backoff.
+Login required (uses stored cookie). Crawl matching the keyword set. Their API rate-limits at ~30 reqs/min, Codex must implement backoff.
 
 ### `cutshort.ts` (Playwright)
 
@@ -76,21 +76,21 @@ python iimjobs_inbox_parse.py --since <ISO>
 
 ### `google_jobs_apify.py`
 
-Calls Apify `dan/google-jobs-scraper` via API. Watch Apify quota — if `usage_pct > 80`, exit 0 with empty array + warning to stderr.
+Calls Apify `dan/google-jobs-scraper` via API. Watch Apify quota, if `usage_pct > 80`, exit 0 with empty array + warning to stderr.
 
 ## Shared library
 
 `~/JobHunt/scrapers/lib/`:
 
-- `keywords.py` — parse keywords.md once, expose filter regex
-- `normalize.py` — common JSON output helper
-- `dedupe.py` — hash function for `(company, role, jd_url)`
-- `cookies.py` — load LinkedIn/Naukri/Instahyre cookies from n8n credentials store
+- `keywords.py`: parse keywords.md once, expose filter regex
+- `normalize.py`: common JSON output helper
+- `dedupe.py`: hash function for `(company, role, jd_url)`
+- `cookies.py`: load LinkedIn/Naukri/Instahyre cookies from n8n credentials store
 
 ## Test plan
 
 - Each scraper has `test_fixtures/<source>_sample.json` with 3-5 hand-curated golden outputs.
-- `make test-scrapers` runs `pytest scrapers/tests/` — for each source, mocks HTTP, asserts normalised output matches golden.
+- `make test-scrapers` runs `pytest scrapers/tests/`: for each source, mocks HTTP, asserts normalised output matches golden.
 - Smoke test: `make smoke-scrapers` runs each live against a 1-hour `--since` window in dry-run mode (writes to stdout, doesn't update sheet). Antigravity validates output looks sane.
 
 ## Anti-fragility

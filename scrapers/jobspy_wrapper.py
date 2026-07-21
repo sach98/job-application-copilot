@@ -125,7 +125,7 @@ def run_jobspy(args: argparse.Namespace) -> list[dict[str, Any]]:
 
     # Minimal pre-filter: drop only obvious junk (intern/fresher/dev roles) via the
     # exclude list. We deliberately DO NOT hard-gate on title-phrase (tier1) or location
-    # here — the holistic AI scorer + the fit gate downstream judge relevance far better,
+    # here: the holistic AI scorer + the fit gate downstream judge relevance far better,
     # and the old regex/location gates silently dropped valid roles (e.g. "DL, IN" Delhi
     # jobs, since jobspy returns state codes, not city names). Location is a soft scoring
     # signal now, not a hard cut.

@@ -2,7 +2,7 @@
 """Draft a follow-up InMail/email via Sonnet for one due task.
 
 Input: --input-b64 <base64 of task JSON> (built by followup.json's
-Filter Due Followups node — carries stage, company, role, hiring_mgr, etc.).
+Filter Due Followups node, carries stage, company, role, hiring_mgr, etc.).
 Output (stdout): the task merged with subject, body, tone, char_count.
 
 The previous n8n node piped the task through `echo` (broke on quotes) and then
@@ -20,8 +20,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent))
 from lib.sonnet import call_claude
-
-PROMPTS_DIR = Path.home() / "JobHunt" / "prompts"
+from lib.paths import PROMPTS_DIR
 FOLLOWUP_PROMPT = PROMPTS_DIR / "followup.md"
 
 

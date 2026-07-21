@@ -37,7 +37,7 @@ SWIPE_STATE_FILE = JOBHUNT_ROOT / "applications" / "_swipe_state.json"
 SWIPE_PATHS = {"/webhook/jobhunt/api/swipe"}
 
 # n8n was the original orchestrator; the pipeline is now fully local (shell-driven).
-# This server serves the app + queue + artifacts and records swipes locally — no proxy.
+# This server serves the app + queue + artifacts and records swipes locally: no proxy.
 
 OUTCOMES_FILE = JOBHUNT_ROOT / "applications" / "_outcomes.json"
 STAGES = ["applied", "screening", "interview", "offer", "rejected", "ghosted"]
@@ -256,7 +256,7 @@ class TinderProxyHandler(http.server.SimpleHTTPRequestHandler):
                 return
             self._send_json(200, {"ok": True, "outcome": data[str(role_id)]})
         elif self.path.startswith("/webhook/"):
-            # n8n removed — accept + no-op so optional UI posts don't error.
+            # n8n removed: accept + no-op so optional UI posts don't error.
             self._send_json(200, {"ok": True})
         else:
             super().do_POST()
